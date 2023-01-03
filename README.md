@@ -1,1 +1,1 @@
-# Kaggle Template
+# RSNA 2022

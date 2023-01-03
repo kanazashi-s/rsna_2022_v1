@@ -2,8 +2,8 @@ import torch
 import torch.nn as nn
 from transformers import AutoConfig, AutoModel, AdamW, get_linear_schedule_with_warmup, get_cosine_schedule_with_warmup
 import pytorch_lightning as pl
-from config.general import GeneralCFG
-from config.single.model_name import ModelNameCFG
+from cfg.general import GeneralCFG
+from cfg.single.model_name import ModelNameCFG
 from utils.metrics import get_score
 
 

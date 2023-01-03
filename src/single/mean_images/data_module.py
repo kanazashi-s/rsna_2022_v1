@@ -3,9 +3,11 @@ from pathlib import Path
 import pandas as pd
 from torch.utils.data import DataLoader
 import pytorch_lightning as pl
+from torchsampler import ImbalancedDatasetSampler
 from data import load_processed_data
-from data.dataset import TrainDataset, TestDataset
-from config.general import GeneralCFG
+from single.mean_images.dataset import TrainDataset, TestDataset
+from single.mean_images.transforms import get_transforms
+from cfg.general import GeneralCFG
 
 
 class DataModule(pl.LightningDataModule):
@@ -16,32 +18,38 @@ class DataModule(pl.LightningDataModule):
         self.batch_size = batch_size
         self.num_workers = num_workers
 
-    def setup(self) -> None:
+    def setup(self, stage="fit") -> None:
         whole_df = load_processed_data.train(seed=self.seed)
+        whole_df["image_filename"] = whole_df["patient_id"].astype(str) + "_" + whole_df["image_id"].astype(str) + ".png"
 
         train_df = whole_df[whole_df["fold"] != self.fold]
-        train_df = train_df.drop(["fold", "id_col"], axis=1)
         valid_df = whole_df[whole_df["fold"] == self.fold]
-        valid_df = valid_df.drop(["fold", "id_col"], axis=1)
 
         test_df = load_processed_data.test(seed=self.seed)
-        test_df = test_df.drop(["id_col"], axis=1)
+        test_df["image_filename"] = test_df["patient_id"].astype(str) + "_" + test_df["image_id"].astype(str) + ".png"
 
         if GeneralCFG.debug:
             train_df = train_df.head(GeneralCFG.num_use_data).reset_index(drop=True)
             valid_df = valid_df.head(GeneralCFG.num_use_data).reset_index(drop=True)
 
-        self.train_dataset = TrainDataset(train_df)
-        self.valid_dataset = TrainDataset(valid_df)
-        self.test_dataset = TestDataset(test_df)
-        self.val_predict_dataset = TestDataset(valid_df[["full_text"]])
+        transforms_no_aug = get_transforms(augment=False)
+        transforms_aug = get_transforms(augment=True)
+        self.train_dataset = TrainDataset(train_df, transforms_aug)
+        self.valid_dataset = TrainDataset(valid_df, transforms_no_aug)
+        self.test_dataset = TestDataset(test_df, transforms_no_aug, is_inference=True)
+        self.val_predict_dataset = TestDataset(
+            valid_df.drop(columns=[GeneralCFG.target_col, "fold"]),
+            transforms_no_aug,
+            is_inference=False
+        )
 
     def train_dataloader(self):
         return DataLoader(
             self.train_dataset,
+            sampler=ImbalancedDatasetSampler(self.train_dataset),
             batch_size=self.batch_size,
             num_workers=self.num_workers,
-            shuffle=True
+            # shuffle=True
         )
 
     def val_dataloader(self):
@@ -70,7 +78,7 @@ class DataModule(pl.LightningDataModule):
 
 
 if __name__ == "__main__":
-    data_module = DataModule(seed=42, fold=0, batch_size=1, num_workers=1)
+    data_module = DataModule(seed=42, fold=0, batch_size=2, num_workers=1)
     data_module.setup()
     for inputs, labels in data_module.train_dataloader():
         print(inputs)

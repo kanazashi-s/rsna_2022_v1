@@ -1,6 +1,6 @@
 from pathlib import Path
 import pandas as pd
-from config.general import GeneralCFG
+from cfg.general import GeneralCFG
 
 
 def train(seed: int):

@@ -1,0 +1,5 @@
+/output
+/transformers_cache
+/mlruns
+/data
+/torch_cache
