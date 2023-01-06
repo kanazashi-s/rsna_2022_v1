@@ -7,6 +7,7 @@ from single.mean_images.config import MeanImagesCFG
 from single.mean_images.data_module import DataModule
 from data import load_processed_data
 from single.mean_images.lit_module import LitModel
+from single.mean_images.postprocessing import agg_by_prediction_id
 from utils import metrics
 
 
@@ -50,7 +51,19 @@ def evaluate(seed, device_idx=0):
         if debug:
             fold_idx = fold_idx[:GeneralCFG.num_use_data]
 
-        oof_df.loc[fold_idx, GeneralCFG.target_col] = fold_i_val_pred
+        max_predictions, max_labels = agg_by_prediction_id(
+            data_module.valid_df,
+            fold_i_val_pred,
+        )
+
+        assert np.array_equal(
+            max_labels,
+            load_processed_data.train(seed=seed).drop_duplicates("prediction_id").reset_index().loc[
+                fold_idx, GeneralCFG.target_col
+            ].values
+        )
+
+        oof_df.loc[fold_idx, GeneralCFG.target_col] = max_predictions
 
         if debug and fold == len(GeneralCFG.train_fold) - 1:
             oof_df = oof_df.loc[oof_df.loc[:, GeneralCFG.target_col].notnull()].reset_index(drop=True)
@@ -62,7 +75,12 @@ def evaluate(seed, device_idx=0):
 
 
 if __name__ == "__main__":
-    MeanImagesCFG.output_dir = Path("/workspace", "output", "single", "last_2_images", "resnet50")
+    MeanImagesCFG.loss_function = "SigmoidFocalLoss"
+    MeanImagesCFG.output_dir = Path("/workspace", "output", "single", "last_2_images", "efficientnetv2_rw_m_mean_focal")
     oof_df, score, auc, thresh, fold_scores, fold_aucs = evaluate(seed=42, device_idx=0)
     print(score)
+    print(auc)
+    print(thresh)
+    print(fold_scores)
+    print(fold_aucs)
     print(oof_df)

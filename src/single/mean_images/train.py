@@ -140,9 +140,36 @@ def get_metric_dict(score, auc, thresh, fold_scores, fold_aucs):
 
 if __name__ == "__main__":
 
-    MeanImagesCFG.model_name = "efficientnetv2_rw_m"
-    MeanImagesCFG.batch_size = 4
-    MeanImagesCFG.accumulate_grad_batches = 16
-    MeanImagesCFG.output_dir = output_dir = Path("/workspace", "output", "single", "last_2_images", "efficientnetv2_rw_m_mean")
-    oof_score_seed_mean = train(f"last_2_images_efficientnetv2_rw_m_mean", seed_list=[42], device_idx=0)
+    # MeanImagesCFG.model_name = "efficientnetv2_rw_m"
+    # MeanImagesCFG.batch_size = 4
+    # MeanImagesCFG.accumulate_grad_batches = 16
+    # MeanImagesCFG.output_dir = output_dir = Path("/workspace", "output", "single", "last_2_images", "efficientnetv2_rw_m_mean")
+    # oof_score_seed_mean = train(f"last_2_images_efficientnetv2_rw_m_mean", seed_list=[42], device_idx=0)
 
+    # MeanImagesCFG.model_name = "efficientnetv2_rw_m"
+    # MeanImagesCFG.batch_size = 8
+    # MeanImagesCFG.accumulate_grad_batches = 32
+    # MeanImagesCFG.sampler = None
+    # MeanImagesCFG.loss_function = "MacroSoftF1Loss"
+    # MeanImagesCFG.output_dir = Path("/workspace", "output", "single", "last_2_images", "efficientnetv2_rw_m_mean_f1_loss")
+    # oof_score_seed_mean = train(f"last_2_images_efficientnetv2_rw_m_mean_f1_loss", seed_list=[42], device_idx=1)
+
+    # MeanImagesCFG.loss_function = "SigmoidFocalLoss"
+    # MeanImagesCFG.focal_loss_alpha = 50.0
+    # MeanImagesCFG.focal_loss_gamma = 2.0
+    # MeanImagesCFG.output_dir = Path("/workspace", "output", "single", "max_images", "efficientnetv2_rw_m_mean_focal")
+    # oof_score_seed_mean = train(f"last_2_images_efficientnetv2_rw_m_mean_focal", seed_list=[42], device_idx=1)
+
+    MeanImagesCFG.output_dir = Path("/workspace", "output", "single", "mean_images", "imbalance_focal")
+    MeanImagesCFG.loss_function = "SigmoidFocalLoss"
+    MeanImagesCFG.focal_loss_alpha = 1.0
+    MeanImagesCFG.focal_loss_gamma = 2.0
+    MeanImagesCFG.sampler = "ImbalancedDatasetSampler"
+    MeanImagesCFG.batch_size = 8
+    MeanImagesCFG.accumulate_grad_batches = 32
+    GeneralCFG.seeds = [42]
+    oof_score_seed_mean = train(
+        f"mean-images-imbalance-focal",
+        seed_list=GeneralCFG.seeds,
+        device_idx=0
+    )

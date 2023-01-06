@@ -151,6 +151,6 @@ if __name__ == "__main__":
     Last2ImagesCFG.model_name = "efficientnetv2_rw_m"
     Last2ImagesCFG.batch_size = 4
     Last2ImagesCFG.accumulate_grad_batches = 16
-    Last2ImagesCFG.output_dir = output_dir = Path("/workspace", "output", "single", "last_2_images", "efficientnetv2_rw_m_lr1e-4")
-    oof_score_seed_mean = train(f"last_2_images_efficientnetv2_rw_m_lr1e-4", seed_list=[42], device_idx=0)
+    Last2ImagesCFG.output_dir = output_dir = Path("/workspace", "output", "single", "last_2_images", "efficientnetv2_rw_m")
+    oof_score_seed_mean = train(f"last_2_images_efficientnetv2_rw_m", seed_list=[42], device_idx=1)
 

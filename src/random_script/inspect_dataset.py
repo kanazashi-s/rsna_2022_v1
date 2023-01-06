@@ -4,7 +4,7 @@ from torchvision import transforms
 from single.last_2_images.data_module import DataModule
 
 
-def save_image_samples(target_label, output_path, num_samples=5, with_aug=True):
+def save_image_samples(target_label, output_path, num_samples=5, with_aug=False):
     shutil.rmtree(output_path, ignore_errors=True)
     output_path.mkdir(parents=True, exist_ok=True)
 
@@ -17,9 +17,11 @@ def save_image_samples(target_label, output_path, num_samples=5, with_aug=True):
     for inputs, labels in data_loader:
         for i, label in enumerate(labels):
             if label == target_label:
-                image = inputs[0][i]
-                image = transforms.ToPILImage()(image)
-                image.save(output_path / f"image_{cnt}.png")
+                mlo_image = transforms.ToPILImage()(inputs[0][i])
+                cc_image = transforms.ToPILImage()(inputs[1][i])
+
+                mlo_image.save(output_path / f"image_mlo_{cnt}.png")
+                cc_image.save(output_path / f"image_cc_{cnt}.png")
                 print(f"Save image_{cnt}.png")
                 cnt += 1
         if cnt >= num_samples:

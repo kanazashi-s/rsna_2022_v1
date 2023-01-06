@@ -54,7 +54,7 @@ class DataModule(pl.LightningDataModule):
         output_df = output_df.drop_duplicates(subset=['prediction_id', 'view'], keep='last').reset_index(drop=True)
 
         pivot_df = output_df.pivot(index='prediction_id', columns='view', values="image_filename").reset_index()
-        pivot_df.columns = ['prediction_id', 'CC_image_filename', 'MLO_image_filename']
+        pivot_df = pivot_df.rename(columns={"CC": "CC_image_filename", "MLO": "MLO_image_filename"})
 
         additional_cols = ['site_id', 'age', 'implant', 'machine_id']
         if stage == "train" or stage == "valid":

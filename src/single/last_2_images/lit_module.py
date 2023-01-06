@@ -6,7 +6,7 @@ import timm
 from transformers import get_cosine_schedule_with_warmup
 from cfg.general import GeneralCFG
 from single.last_2_images.config import Last2ImagesCFG
-from single.model_utils.focal_loss import SigmoidFocalLoss
+from utils.model_utils.focal_loss import SigmoidFocalLoss
 from utils.metrics import get_score
 
 
@@ -19,6 +19,8 @@ class LitModel(pl.LightningModule):
             "model_name": Last2ImagesCFG.model_name,
             "num_classes": 0,  # to use feature extractor,
             "in_chans": 1,
+            "drop_rate": Last2ImagesCFG.drop_rate,
+            "drop_path_rate": Last2ImagesCFG.drop_path_rate,
         }
         if GeneralCFG.is_kaggle:
             self.backbone_mlo = timm.create_model(**model_config, pretrained=False)

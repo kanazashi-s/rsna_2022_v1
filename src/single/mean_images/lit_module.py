@@ -1,15 +1,15 @@
 import numpy as np
 import torch
 import torch.nn as nn
-import pandas as pd
 import pytorch_lightning as pl
 import timm
 from transformers import get_cosine_schedule_with_warmup
 from cfg.general import GeneralCFG
 from single.mean_images.config import MeanImagesCFG
-from single.model_utils.focal_loss import SigmoidFocalLoss
+from utils.model_utils.focal_loss import SigmoidFocalLoss
+from utils.model_utils.macro_soft_f1 import MacroSoftF1Loss
 from utils.metrics import get_score
-from utils import numpy_groupby
+from single.mean_images.postprocessing import agg_by_prediction_id
 
 
 class LitModel(pl.LightningModule):
@@ -21,6 +21,8 @@ class LitModel(pl.LightningModule):
             "model_name": MeanImagesCFG.model_name,
             "num_classes": 0,  # to use feature extractor,
             "in_chans": 1,
+            "drop_rate": MeanImagesCFG.drop_rate,
+            "drop_path_rate": MeanImagesCFG.drop_path_rate,
         }
         if GeneralCFG.is_kaggle:
             self.backbone = timm.create_model(**model_config, pretrained=False)
@@ -104,12 +106,12 @@ class LitModel(pl.LightningModule):
         return loss, outputs, labels
 
     def test_step(self, batch, batch_idx):
-        inputs = batch
+        inputs = batch[0]
         outputs = self.forward(inputs)
         return outputs
 
-    def prediction_step(self, batch, batch_idx):
-        inputs = batch
+    def predict_step(self, batch, batch_idx):
+        inputs = batch[0]
         outputs = self.forward(inputs)
         return outputs
 
@@ -117,19 +119,19 @@ class LitModel(pl.LightningModule):
         all_preds = torch.cat([x[1] for x in validation_step_outputs], dim=0).cpu().detach().float().numpy()
         all_labels = torch.cat([x[2] for x in validation_step_outputs], dim=0).cpu().detach().float().numpy()
 
-        valid_df = self.trainer.datamodule.train_df
-        valid_predictions = valid_df[['prediction_id', 'cancer']].copy()
-        assert np.array_equal(valid_df['cancer'].values, all_labels.flatten())
+        valid_df = self.trainer.datamodule.valid_df[['prediction_id', 'cancer']].copy()
 
-        valid_predictions['predictions'] = all_preds.flatten()
-        max_predictions_df = valid_predictions.groupby('prediction_id').agg({'predictions': 'max'}).reset_index()
-        max_predictions = max_predictions_df['predictions'].values
+        if self.trainer.sanity_checking:
+            valid_df = valid_df.iloc[:len(all_preds)]
+        assert np.array_equal(valid_df['cancer'].values, all_labels.flatten().astype(int))
 
-        self.log('label_mean', max_predictions.mean(), on_step=False, on_epoch=True, prog_bar=True, logger=True)
+        max_predictions, max_labels = agg_by_prediction_id(valid_df, all_preds)
+
+        self.log('label_mean', all_labels.mean(), on_step=False, on_epoch=True, prog_bar=True, logger=True)
         self.log('pred_mean', (1 / (1 + np.exp(-all_preds))).mean(), on_step=False, on_epoch=True, prog_bar=True, logger=True)
-        self.log('pred_mean_0.0', (all_preds >= 0.0).mean(), on_step=False, on_epoch=True, prog_bar=True, logger=True)
-        score, auc, thresh = get_score(max_predictions, mean_predictions['predictions'])
+        score, auc, thresh = get_score(max_labels, max_predictions)
 
+        self.log('pred_mean_thresh', (all_preds >= thresh).mean(), on_step=False, on_epoch=True, prog_bar=True, logger=True)
         self.log("score", score, on_step=False, on_epoch=True, prog_bar=True, logger=True)
         self.log("auc", auc, on_step=False, on_epoch=True, prog_bar=True, logger=True)
         self.log("thresh", thresh, on_step=False, on_epoch=True, prog_bar=True, logger=True)
@@ -144,6 +146,11 @@ class LitModel(pl.LightningModule):
                 gamma=MeanImagesCFG.focal_loss_gamma,
                 alpha=MeanImagesCFG.focal_loss_alpha,
                 sigmoid=True
+            )
+        elif MeanImagesCFG.loss_function == "MacroSoftF1Loss":
+            return MacroSoftF1Loss(
+                consider_true_negative=False,
+                sigmoid_is_applied_to_input=False
             )
 
     @staticmethod

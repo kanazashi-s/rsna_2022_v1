@@ -5,6 +5,7 @@ from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 from torchsampler import ImbalancedDatasetSampler
 from data import load_processed_data
+from single.mean_images.config import MeanImagesCFG
 from single.mean_images.dataset import TrainDataset, TestDataset
 from single.mean_images.transforms import get_transforms
 from cfg.general import GeneralCFG
@@ -22,34 +23,45 @@ class DataModule(pl.LightningDataModule):
         whole_df = load_processed_data.train(seed=self.seed)
         whole_df["image_filename"] = whole_df["patient_id"].astype(str) + "_" + whole_df["image_id"].astype(str) + ".png"
 
-        train_df = whole_df[whole_df["fold"] != self.fold]
-        valid_df = whole_df[whole_df["fold"] == self.fold]
+        self.train_df = whole_df[whole_df["fold"] != self.fold]
+        self.valid_df = whole_df[whole_df["fold"] == self.fold]
 
-        test_df = load_processed_data.test(seed=self.seed)
-        test_df["image_filename"] = test_df["patient_id"].astype(str) + "_" + test_df["image_id"].astype(str) + ".png"
+        self.test_df = load_processed_data.test(seed=self.seed)
+        self.test_df["image_filename"] = self.test_df["patient_id"].astype(str) + "_" + self.test_df["image_id"].astype(str) + ".png"
 
         if GeneralCFG.debug:
-            train_df = train_df.head(GeneralCFG.num_use_data).reset_index(drop=True)
-            valid_df = valid_df.head(GeneralCFG.num_use_data).reset_index(drop=True)
+            self.train_df = self.train_df.head(GeneralCFG.num_use_data).reset_index(drop=True)
+            self.valid_df = self.valid_df.head(GeneralCFG.num_use_data).reset_index(drop=True)
 
         transforms_no_aug = get_transforms(augment=False)
         transforms_aug = get_transforms(augment=True)
-        self.train_dataset = TrainDataset(train_df, transforms_aug)
-        self.valid_dataset = TrainDataset(valid_df, transforms_no_aug)
-        self.test_dataset = TestDataset(test_df, transforms_no_aug, is_inference=True)
+        self.train_dataset = TrainDataset(self.train_df, transforms_aug)
+        self.valid_dataset = TrainDataset(self.valid_df, transforms_no_aug)
+        self.test_dataset = TestDataset(self.test_df, transforms_no_aug, is_inference=True)
         self.val_predict_dataset = TestDataset(
-            valid_df.drop(columns=[GeneralCFG.target_col, "fold"]),
+            self.valid_df.drop(columns=[GeneralCFG.target_col, "fold"]),
             transforms_no_aug,
             is_inference=False
         )
 
     def train_dataloader(self):
+        if MeanImagesCFG.sampler == "ImbalancedDatasetSampler":
+            sampler_dict = {
+                "sampler": ImbalancedDatasetSampler(self.train_dataset),
+                "shuffle": False
+            }
+        elif MeanImagesCFG.sampler is None:
+            sampler_dict = {
+                "shuffle": True
+            }
+        else:
+            raise NotImplementedError
+
         return DataLoader(
             self.train_dataset,
-            sampler=ImbalancedDatasetSampler(self.train_dataset),
             batch_size=self.batch_size,
             num_workers=self.num_workers,
-            # shuffle=True
+            **sampler_dict
         )
 
     def val_dataloader(self):

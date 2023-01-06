@@ -55,7 +55,7 @@ class TestDataset(Dataset):
     def __getitem__(self, idx):
         row = self.input_df.iloc[idx]
         inputs = prepare_input(
-            row["image_filename"].values,
+            row["image_filename"],
             self.transform,
             is_inference=self.is_inference
         )
