@@ -7,8 +7,8 @@ class GeneralCFG:
     raw_data_dir = data_dir / "raw"
     processed_data_dir = data_dir / "processed"
     png_data_dir = data_dir / "png_converted"
-    train_image_dir = png_data_dir / "theo_1024"
-    image_size = 1024
+    train_image_dir = png_data_dir / "theo_512"
+    image_size = 512
     data_version = "vanilla"
     debug = False
     num_workers = 2
