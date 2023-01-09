@@ -62,7 +62,7 @@ def evaluate(seed, device_idx=0):
 
 
 if __name__ == "__main__":
-    TwoViewConcatCFG.output_dir = Path("/workspace", "output", "single", "two_view_concat", "resnet50")
+    TwoViewConcatCFG.output_dir = Path("/workspace", "output", "single", "two_view_concat", "baseline_512")
     oof_df, score, auc, thresh, fold_scores, fold_aucs = evaluate(seed=42, device_idx=0)
     print(score)
     print(oof_df)

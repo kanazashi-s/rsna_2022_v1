@@ -26,5 +26,6 @@ if GeneralCFG.is_kaggle:
 
 
 if GeneralCFG.debug:
+    GeneralCFG.test_image_dir = Path("/kaggle", "working", "train_png_512")
     GeneralCFG.train_fold = [0, 1]
     GeneralCFG.num_use_data = 300

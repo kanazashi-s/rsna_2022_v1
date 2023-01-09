@@ -82,7 +82,7 @@ def train(run_name: str, seed_list=None, device_idx=0):
         mlflow_logger.log_metrics(get_metric_dict(score, auc, thresh, fold_scores, fold_aucs))
 
         create_dataset_metadata(
-            model_name=f"two-view-concat-seed{seed}",
+            model_name=f"{run_name.replace('_', '-')}-seed{seed}",
             model_path=output_dir,
         )
 
@@ -96,7 +96,7 @@ def train(run_name: str, seed_list=None, device_idx=0):
     print(f"oof_score_seed_mean: {oof_score_seed_mean}")
 
     create_dataset_metadata(
-        model_name=f"two-view-concat",
+        model_name=f"{run_name.replace('_', '-')}-seed-mean",
         model_path=TwoViewConcatCFG.output_dir,
     )
 

@@ -80,15 +80,23 @@ def get_oof_score(oof_df, seed, is_debug=False):
 
     fold_scores = []
     fold_aucs = []
+    fold_threshs = []
+    fold_pred_oof_df = oof_df.copy()  # 各Foldのthreshで2値化した予測値を格納する
     for fold in GeneralCFG.train_fold:
         fold_labels = train_df.loc[train_df["fold"] == fold][GeneralCFG.target_col].values
         fold_preds = oof_df.loc[oof_df["fold"] == fold][GeneralCFG.target_col].values
         fold_score, fold_auc, fold_thresh = get_score(fold_labels, fold_preds)
+        fold_pred_oof_df.loc[fold_pred_oof_df["fold"] == fold, GeneralCFG.target_col] = (fold_preds >= fold_thresh).astype(int)
         fold_scores.append(fold_score)
         fold_aucs.append(fold_auc)
+        fold_threshs.append(fold_thresh)
         print(f"fold {fold}: score={fold_score:.4f}, auc={fold_auc:.4f}, thresh={fold_thresh:.4f}")
 
-    return score, auc, thresh, fold_scores, fold_aucs
+    # 各Foldのthreshで2値化した予測値
+    preds_2 = fold_pred_oof_df[GeneralCFG.target_col].values
+    score_2, auc_2, thresh_2 = get_score(labels, 1 / (1 + np.exp(-preds_2)))
+
+    return score, auc, thresh, fold_scores, fold_aucs, fold_threshs, score_2, auc_2, thresh_2
 
 
 def get_best_thresh(y_trues, y_preds):
