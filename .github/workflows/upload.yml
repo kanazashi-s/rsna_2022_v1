@@ -20,11 +20,11 @@ jobs:
       - name: Install kaggle api
         run: pip install kaggle
 
-      - name: zip source
-        run: zip -r ./upload_kaggle_dir/src.zip ./src
+      - name: cp source
+        run: cp -r ./upload_kaggle_dir/ ./src/*
 
       - name: Upload to kaggle
         env:
           KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
           KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
-        run: kaggle datasets version -p ./upload_kaggle_dir -m 'update' -d
+        run: kaggle datasets version -p ./upload_kaggle_dir -m 'update' --dir-mode zip
