@@ -27,4 +27,4 @@ jobs:
         env:
           KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
           KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
-        run: kaggle datasets version -p ./upload_kaggle_dir -m 'update' --dir-mode zip
+        run: kaggle datasets version -p ./upload_kaggle_dir -m 'update' --dir-mode zip -d
