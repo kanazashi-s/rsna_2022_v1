@@ -21,7 +21,7 @@ jobs:
         run: pip install kaggle
 
       - name: cp source
-        run: cp -r ./upload_kaggle_dir/ ./src/*
+        run: cp -r ./src/* ./upload_kaggle_dir/
 
       - name: Upload to kaggle
         env:
