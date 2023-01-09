@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import glob
+import os
 
 
 def sigmoid(x):
@@ -17,4 +18,9 @@ if __name__ == '__main__':
     # nums_mean = np.mean(nums)
     # print(sigmoid(nums_mean))
 
-    print(len(glob.glob("data/tmp_raw/test_images/*/*.dcm")))
+    # print(len(glob.glob("data/tmp_raw/test_images/*/*.dcm")))
+    print(os.environ["IS_KAGGLE_ENVIRONMENT"])
+    os.environ["TEST"] = "False"
+    print(os.environ["TEST"])
+    print(os.environ["IS_KAGGLE_ENVIRONMENT"])
+

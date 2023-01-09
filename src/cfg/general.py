@@ -1,8 +1,9 @@
 from pathlib import Path
+import os
 
 
 class GeneralCFG:
-    is_kaggle = False
+    is_kaggle = bool(int(os.environ["IS_KAGGLE_ENVIRONMENT"]))
     data_dir = Path("/workspace", "data")
     raw_data_dir = data_dir / "raw"
     processed_data_dir = data_dir / "processed"
