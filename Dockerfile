@@ -7,6 +7,7 @@ RUN apt-get update && apt-get install libgl1 -y
 
 COPY requirements.txt requirements.txt
 RUN pip install -r requirements.txt
+RUN pip install --extra-index-url https://developer.download.nvidia.com/compute/redist --upgrade nvidia-dali-cuda110
 
 ENV TRANSFORMERS_CACHE /workspace/transformers_cache
 ENV TOKENIZERS_PARALLELISM=false

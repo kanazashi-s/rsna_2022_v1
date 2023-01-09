@@ -1,9 +1,11 @@
+import os
 from pathlib import Path
 from cfg.general import GeneralCFG
 
 
 class TwoViewConcatCFG:
     output_dir = Path("/workspace", "output", "single", "two_view_concat")
+    upload_name = "two-view-concat-baseline-512-42-20220109"
     model_name = "efficientnet_b0"
     drop_rate = 0.3
     drop_path_rate = 0.2
@@ -31,11 +33,11 @@ class TwoViewConcatCFG:
 
     monitor_metric = "score"
     monitor_mode = "max"
-    uploaded_model_dir = None
+    uploaded_model_dir = output_dir
 
 
 if GeneralCFG.is_kaggle:
-    TwoViewConcatCFG.uploaded_model_dir = Path("aaaaa")
+    TwoViewConcatCFG.uploaded_model_dir = Path("/kaggle", "input", TwoViewConcatCFG.upload_name)
     TwoViewConcatCFG.batch_size = 4
 
 

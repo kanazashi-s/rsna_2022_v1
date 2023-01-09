@@ -71,6 +71,14 @@ class DataModule(pl.LightningDataModule):
             on='prediction_id',
             how='left'
         )
+
+        submission_df = load_processed_data.sample_submission(42)
+        pivot_df = submission_df[["prediction_id"]].merge(
+            pivot_df,
+            on="prediction_id",
+            how="left"
+        )
+
         return pivot_df
 
     def train_dataloader(self):

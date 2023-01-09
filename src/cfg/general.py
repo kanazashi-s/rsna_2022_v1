@@ -8,10 +8,11 @@ class GeneralCFG:
     processed_data_dir = data_dir / "processed"
     png_data_dir = data_dir / "png_converted"
     train_image_dir = png_data_dir / "theo_512"
+    test_image_dir = png_data_dir / "test_png_512"
     image_size = 512
     data_version = "vanilla"
     debug = False
-    num_workers = 2
+    num_workers = 0
     seeds = [42, 43, 44]
     n_fold = 5
     train_fold = [0, 1, 2, 3, 4]
