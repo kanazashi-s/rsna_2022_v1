@@ -5,7 +5,7 @@ from cfg.general import GeneralCFG
 
 class TwoViewConcatCFG:
     output_dir = Path("/workspace", "output", "single", "two_view_concat")
-    upload_name = "two-view-concat-baseline-512-42-20220109"
+    upload_name = "two-view-concat"
     model_name = "efficientnet_b0"
     drop_rate = 0.3
     drop_path_rate = 0.2
