@@ -30,7 +30,7 @@ def inference(seed):
         trainer = pl.Trainer(
             accelerator="gpu",
             devices=[0],
-            precision="bf16",
+            # precision="bf16",
         )
 
         fold_preds = trainer.predict(
