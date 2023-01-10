@@ -5,7 +5,7 @@ import os
 class GeneralCFG:
     is_kaggle = bool(int(os.environ["IS_KAGGLE_ENVIRONMENT"]))
     data_dir = Path("/kaggle", "input", "rsna-breast-cancer-detection") if is_kaggle else Path("/workspace", "data")
-    raw_data_dir = data_dir / "raw"
+    raw_data_dir = Path("/kaggle", "input", "rsna-breast-cancer-detection") if is_kaggle else data_dir / "raw"
     processed_data_dir = data_dir / "processed"
     png_data_dir = data_dir / "png_converted"
     train_image_dir = png_data_dir / "theo_512"
