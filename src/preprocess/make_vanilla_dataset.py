@@ -6,7 +6,7 @@ from preprocess.cv import add_fold_column
 
 
 def make():
-    output_path = Path("/workspace", "data", "processed", "vanilla")
+    output_path = GeneralCFG.processed_data_dir / "vanilla"
     output_path.mkdir(parents=True, exist_ok=True)
 
     # load all csv files
