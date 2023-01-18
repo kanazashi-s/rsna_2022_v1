@@ -8,7 +8,7 @@ from cfg.general import GeneralCFG
 from single.mean_images.config import MeanImagesCFG
 from utils.model_utils.focal_loss import SigmoidFocalLoss
 from utils.model_utils.macro_soft_f1 import MacroSoftF1Loss
-from utils.metrics import get_score
+from metrics import get_scores
 from single.mean_images.postprocessing import agg_by_prediction_id
 
 
@@ -129,7 +129,7 @@ class LitModel(pl.LightningModule):
 
         self.log('label_mean', all_labels.mean(), on_step=False, on_epoch=True, prog_bar=True, logger=True)
         self.log('pred_mean', (1 / (1 + np.exp(-all_preds))).mean(), on_step=False, on_epoch=True, prog_bar=True, logger=True)
-        score, auc, thresh = get_score(max_labels, max_predictions)
+        score, auc, thresh = get_scores.get(max_labels, max_predictions)
 
         self.log('pred_mean_thresh', (all_preds >= thresh).mean(), on_step=False, on_epoch=True, prog_bar=True, logger=True)
         self.log("score", score, on_step=False, on_epoch=True, prog_bar=True, logger=True)

@@ -5,7 +5,7 @@ from cfg.general import GeneralCFG
 
 class TwoViewConcatCFG:
     output_dir = Path("/workspace", "output", "single", "two_view_concat")
-    upload_name = "two-view-concat"
+    upload_name = "two-view-concat-baseline-20220118"
     model_name = "efficientnet_b0"
     drop_rate = 0.3
     drop_path_rate = 0.2
@@ -30,8 +30,9 @@ class TwoViewConcatCFG:
     focal_loss_alpha = 1.0  # only used when loss_function == "SigmoidFocalLoss"
     focal_loss_gamma = 2.0  # only used when loss_function == "SigmoidFocalLoss"
     sampler = "ImbalancedDatasetSampler"
+    num_samples_per_epoch = None
 
-    monitor_metric = "score"
+    monitor_metric = "best_pfbeta"
     monitor_mode = "max"
     uploaded_model_dir = output_dir
 

@@ -6,8 +6,8 @@ from cfg.general import GeneralCFG
 from single.two_view_concat.config import TwoViewConcatCFG
 from single.two_view_concat.data_module import DataModule
 from data import load_processed_data
-from single.two_view_concat.lit_module import LitModel
-from utils import metrics
+from single.two_view_concat.model.lit_module import LitModel
+from metrics import calc_oof_score
 
 
 def inference(seed):
@@ -76,5 +76,5 @@ def calc_seed_mean(seeds=GeneralCFG.seeds):
 
 if __name__ == "__main__":
     TwoViewConcatCFG.uploaded_model_dir = Path("/workspace", "output", "single", "two_view_concat", "baseline_512")
-    predictions_seed_mean_df = calc_seed_mean(seeds=[42])
-    predictions_seed_mean_df.to_csv("submission.csv", index=False)
+    predictions_seed_mean_df = calc_seed_mean()
+    predictions_seed_mean_df.to_csv(TwoViewConcatCFG.uploaded_model_dir / "submission.csv", index=False)

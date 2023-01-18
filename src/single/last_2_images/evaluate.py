@@ -7,7 +7,7 @@ from single.last_2_images.config import Last2ImagesCFG
 from single.last_2_images.data_module import DataModule
 from data import load_processed_data
 from single.last_2_images.lit_module import LitModel
-from utils import metrics
+from metrics import calc_oof_score
 
 
 def evaluate(seed, device_idx=0):
@@ -57,7 +57,7 @@ def evaluate(seed, device_idx=0):
             break
 
     oof_df.to_csv(Last2ImagesCFG.output_dir / "oof.csv", index=False)
-    score, auc, thresh, fold_scores, fold_aucs = metrics.get_oof_score(oof_df, is_debug=debug, seed=seed)
+    score, auc, thresh, fold_scores, fold_aucs = calc_oof_score.calc(oof_df, is_debug=debug, seed=seed)
     return oof_df, score, auc, thresh, fold_scores, fold_aucs
 
 

@@ -22,6 +22,7 @@ class DataModule(pl.LightningDataModule):
     def setup(self, stage="fit") -> None:
         whole_df = load_processed_data.train(seed=self.seed)
         whole_df = self._pivot_prediction_id(whole_df, stage="train")
+        assert whole_df["prediction_id"].equals(load_processed_data.sample_oof(seed=self.seed)["prediction_id"])
 
         train_df = whole_df[whole_df["fold"] != self.fold]
         valid_df = whole_df[whole_df["fold"] == self.fold]
@@ -45,8 +46,7 @@ class DataModule(pl.LightningDataModule):
             is_inference=False
         )
 
-    @staticmethod
-    def _pivot_prediction_id(input_df, stage: str = "train"):
+    def _pivot_prediction_id(self, input_df, stage: str = "train"):
         """
         create a pivot table with prediction_id as index
         """
@@ -72,19 +72,32 @@ class DataModule(pl.LightningDataModule):
             how='left'
         )
 
-        submission_df = load_processed_data.sample_submission(42)
-        pivot_df = submission_df[["prediction_id"]].merge(
-            pivot_df,
-            on="prediction_id",
-            how="left"
-        )
+        if stage == "train":
+            oof_df = load_processed_data.sample_oof(seed=self.seed)
+            pivot_df = oof_df[["prediction_id"]].merge(
+                pivot_df,
+                on="prediction_id",
+                how="left"
+            )
+        elif stage == "test":
+            submission_df = load_processed_data.sample_submission(seed=self.seed)
+            pivot_df = submission_df[["prediction_id"]].merge(
+                pivot_df,
+                on="prediction_id",
+                how="left"
+            )
+        else:
+            raise ValueError(f"Invalid stage: {stage} (must be train or test)")
 
         return pivot_df
 
     def train_dataloader(self):
         if TwoViewConcatCFG.sampler == "ImbalancedDatasetSampler":
             sampler_dict = {
-                "sampler": ImbalancedDatasetSampler(self.train_dataset),
+                "sampler": ImbalancedDatasetSampler(
+                    self.train_dataset,
+                    num_samples=TwoViewConcatCFG.num_samples_per_epoch,
+                ),
                 "shuffle": False
             }
         elif TwoViewConcatCFG.sampler is None:

@@ -7,7 +7,7 @@ from transformers import get_cosine_schedule_with_warmup
 from cfg.general import GeneralCFG
 from single.last_2_images.config import Last2ImagesCFG
 from utils.model_utils.focal_loss import SigmoidFocalLoss
-from utils.metrics import get_score
+from metrics import get_scores
 
 
 class LitModel(pl.LightningModule):
@@ -125,7 +125,7 @@ class LitModel(pl.LightningModule):
         self.log('label_mean', all_labels.mean(), on_step=False, on_epoch=True, prog_bar=True, logger=True)
         self.log('pred_mean', (1 / (1 + np.exp(-all_preds))).mean(), on_step=False, on_epoch=True, prog_bar=True, logger=True)
         self.log('pred_mean_0.0', (all_preds >= 0.0).mean(), on_step=False, on_epoch=True, prog_bar=True, logger=True)
-        score, auc, thresh = get_score(all_labels, all_preds)
+        score, auc, thresh = get_scores.get(all_labels, all_preds)
         self.log("score", score, on_step=False, on_epoch=True, prog_bar=True, logger=True)
         self.log("auc", auc, on_step=False, on_epoch=True, prog_bar=True, logger=True)
         self.log("thresh", thresh, on_step=False, on_epoch=True, prog_bar=True, logger=True)
