@@ -24,3 +24,12 @@ def sample_oof(seed: int):
     file_name = "debug_sample_oof.csv" if GeneralCFG.debug else "sample_oof.csv"
     return pol.read_csv(input_path / file_name)
 
+
+def debug_train(seed: int):
+    input_path = GeneralCFG.processed_data_dir / GeneralCFG.data_version / f"seed{seed}"
+    return pol.read_csv(input_path / "debug_train.csv")
+
+
+def debug_sample_oof(seed: int):
+    input_path = GeneralCFG.processed_data_dir / GeneralCFG.data_version / f"seed{seed}"
+    return pol.read_csv(input_path / "debug_sample_oof.csv")

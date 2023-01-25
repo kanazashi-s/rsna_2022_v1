@@ -1,11 +1,12 @@
 from pathlib import Path
 import numpy as np
+import polars as pol
 import torch
 import pytorch_lightning as pl
 from cfg.general import GeneralCFG
 from single.mean_agg.config import MeanAggCFG
 from single.mean_agg.data_module import DataModule
-from data import load_processed_data
+from data import load_processed_data_pol
 from single.mean_agg.model.lit_module import LitModel
 from metrics import calc_oof_score
 
@@ -17,11 +18,16 @@ def evaluate(seed, device_idx=0):
     pl.seed_everything(seed)
     debug = GeneralCFG.debug
 
-    oof_df = load_processed_data.sample_oof(seed=seed)
-    oof_df[GeneralCFG.target_col] = np.nan
-
     if debug:
-        oof_df = oof_df.loc[oof_df["fold"].isin(GeneralCFG.train_fold), :].reset_index(drop=True)
+        oof_df = load_processed_data_pol.debug_sample_oof(seed=seed)
+    else:
+        oof_df = load_processed_data_pol.sample_oof(seed=seed)
+
+    oof_df = oof_df.filter(
+        pol.col("fold").is_in(GeneralCFG.train_fold)
+    ).with_column(
+        GeneralCFG.target_col, pol.Series(name=GeneralCFG.target_col, values=None)
+    )
 
     for fold in GeneralCFG.train_fold:
         input_dir = MeanAggCFG.output_dir / f"seed{seed}"
@@ -46,15 +52,21 @@ def evaluate(seed, device_idx=0):
         )
         fold_i_val_pred = (torch.concat(fold_i_val_pred, axis=0).cpu().detach().float().numpy())
 
-        fold_idx = oof_df.loc[oof_df["fold"] == fold].index
-        if debug:
-            fold_idx = fold_idx[:GeneralCFG.num_use_data]
+        oof_df = oof_df.with_column(
+            pol.when(pol.col("fold") == fold)
+            .then(pol.Series(name=GeneralCFG.target_col, values=fold_i_val_pred))
+            .otherwise(pol.col(GeneralCFG.target_col))
+        )
 
-        oof_df.loc[fold_idx, GeneralCFG.target_col] = fold_i_val_pred
-
-        if debug and fold == len(GeneralCFG.train_fold) - 1:
-            oof_df = oof_df.loc[oof_df.loc[:, GeneralCFG.target_col].notnull()].reset_index(drop=True)
-            break
+        # fold_idx = oof_df.loc[oof_df["fold"] == fold].index
+        # if debug:
+        #     fold_idx = fold_idx[:GeneralCFG.num_use_data]
+        #
+        # oof_df.loc[fold_idx, GeneralCFG.target_col] = fold_i_val_pred
+        #
+        # if debug and fold == len(GeneralCFG.train_fold) - 1:
+        #     oof_df = oof_df.loc[oof_df.loc[:, GeneralCFG.target_col].notnull()].reset_index(drop=True)
+        #     break
 
     oof_df.to_csv(MeanAggCFG.output_dir / "oof.csv", index=False)
     whole_metrics, metrics_by_folds, metrics_each_fold = calc_oof_score.calc(oof_df, is_debug=debug, seed=seed)
