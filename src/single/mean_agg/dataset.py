@@ -6,14 +6,13 @@ from cfg.general import GeneralCFG
 from single.mean_agg.config import MeanAggCFG
 
 
-def prepare_input(input_img_names, transform, is_inference=False):
-    mlo_image_filename, cc_image_filename = input_img_names
+def prepare_input(input_img_name, transform, is_inference=False):
     if is_inference:
         img_dir = GeneralCFG.test_image_dir
     else:
         img_dir = GeneralCFG.train_image_dir
 
-    image = read_image(str(img_dir / mlo_image_filename), mode=ImageReadMode.GRAY).float()
+    image = read_image(str(img_dir / input_img_name), mode=ImageReadMode.GRAY).float()
     image = transform(image)
     return image
 
@@ -21,7 +20,7 @@ def prepare_input(input_img_names, transform, is_inference=False):
 class TrainDataset(Dataset):
     def __init__(self, input_df, transform):
         super().__init__()
-        self.input_df = input_df
+        self.input_df = input_df.to_pandas()
         self.transform = transform
 
     def __len__(self):
@@ -38,13 +37,13 @@ class TrainDataset(Dataset):
         return inputs, label
 
     def get_labels(self):
-        return self.input_df[GeneralCFG.target_col]
+        return self.input_df[GeneralCFG.target_col].values
 
 
 class TestDataset(Dataset):
     def __init__(self, input_df, transform, is_inference=False):  # when is_inference=True, it is executed in kaggle notebook.
         super().__init__()
-        self.input_df = input_df
+        self.input_df = input_df.to_pandas()
         self.is_inference = is_inference
         self.transform = transform
 

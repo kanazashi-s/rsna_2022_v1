@@ -1,7 +1,10 @@
 import numpy as np
+import polars as pol
 import torch
 import pytorch_lightning as pl
+from cfg.general import GeneralCFG
 from metrics import get_scores
+from data import load_processed_data_pol
 
 
 class ValidNetMixin(pl.LightningModule):
@@ -19,7 +22,35 @@ class ValidNetMixin(pl.LightningModule):
         self.log('pred_mean', (1 / (1 + np.exp(-all_preds))).mean(), on_step=False, on_epoch=True, prog_bar=True, logger=True)
         self.log('pred_mean_0.0', (all_preds >= 0.0).mean(), on_step=False, on_epoch=True, prog_bar=True, logger=True)
 
-        # TODO: validation dataset に合わせて、集約を行う
+        valid_fold_num = self.trainer.datamodule.fold
+        seed_num = self.trainer.datamodule.seed
+        whole_df = load_processed_data_pol.train(seed=seed_num)
+        valid_df = whole_df.filter(
+            pol.col('fold') == valid_fold_num
+        ).select([
+            pol.col("prediction_id"),
+            pol.col("cancer"),
+            pol.Series(name="all_preds", values=[0] if self.trainer.sanity_checking else all_preds.reshape(-1)),
+        ])
+
+        if not self.trainer.sanity_checking:
+            assert valid_df.get_column("cancer").series_equal(pol.Series(name="cancer", values=all_labels.reshape(-1)))
+
+        agg_df = load_processed_data_pol.sample_oof(seed=seed_num).filter(
+            pol.col('fold') == valid_fold_num
+        ).select(
+            pol.col("prediction_id")
+        ).join(
+            valid_df.groupby("prediction_id").agg([
+                pol.col("all_preds").mean().alias("all_preds"),
+                pol.col("cancer").first().alias("cancer")
+            ]),
+            on="prediction_id",
+            how="left"
+        )
+
+        all_labels = agg_df.select(pol.col("cancer")).to_numpy().flatten()
+        all_preds = agg_df.select(pol.col("all_preds")).to_numpy().flatten()
 
         scores_dict = get_scores.get(all_labels, all_preds)
         for key, value in scores_dict.items():

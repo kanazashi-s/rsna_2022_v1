@@ -12,7 +12,7 @@ class GeneralCFG:
     test_image_dir = Path("/kaggle", "working", "test_png_1024") if is_kaggle else png_data_dir / "test_png_1024"
     image_size = 1024
     data_version = "vanilla"
-    debug = False
+    debug = os.environ.get('DEBUG_FLG', '0') == '1'
     num_workers = 0
     seeds = [42, 43, 44]
     n_fold = 5

@@ -29,7 +29,7 @@ class MeanAggCFG:
     pos_weight = [1.0]  # only used when loss_function == "BCEWithLogitsLoss"
     focal_loss_alpha = 1.0  # only used when loss_function == "SigmoidFocalLoss"
     focal_loss_gamma = 2.0  # only used when loss_function == "SigmoidFocalLoss"
-    sampler = "ImbalancedDatasetSampler"
+    sampler = "AtLeastOnePositiveSampler"  # None, "ImbalancedDatasetSampler" or "AtLeastOnePositiveSampler"
     num_samples_per_epoch = None
 
     monitor_metric = "best_pfbeta"
