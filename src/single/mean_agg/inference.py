@@ -3,10 +3,10 @@ import numpy as np
 import torch
 import pytorch_lightning as pl
 from cfg.general import GeneralCFG
-from single.two_view_concat.config import TwoViewConcatCFG
-from single.two_view_concat.data_module import DataModule
+from single.mean_agg.config import MeanAggCFG
+from single.mean_agg.data_module import DataModule
 from data import load_processed_data
-from single.two_view_concat.model.lit_module import LitModel
+from single.mean_agg.model.lit_module import LitModel
 from metrics import calc_oof_score
 
 
@@ -16,13 +16,13 @@ def inference(seed):
 
     predictions_list = []
     for fold in GeneralCFG.train_fold:
-        input_dir = TwoViewConcatCFG.uploaded_model_dir / f"seed{seed}"
+        input_dir = MeanAggCFG.uploaded_model_dir / f"seed{seed}"
         model = LitModel()
 
         data_module = DataModule(
             seed=seed,
             fold=fold,
-            batch_size=TwoViewConcatCFG.batch_size,
+            batch_size=MeanAggCFG.batch_size,
             num_workers=GeneralCFG.num_workers,
         )
         data_module.setup()
@@ -75,6 +75,6 @@ def calc_seed_mean(seeds=GeneralCFG.seeds):
 
 
 if __name__ == "__main__":
-    TwoViewConcatCFG.uploaded_model_dir = Path("/workspace", "output", "single", "two_view_concat", "baseline_512")
+    MeanAggCFG.uploaded_model_dir = Path("/workspace", "output", "single", "mean_agg", "baseline_512")
     predictions_seed_mean_df = calc_seed_mean()
-    predictions_seed_mean_df.to_csv(TwoViewConcatCFG.uploaded_model_dir / "submission.csv", index=False)
+    predictions_seed_mean_df.to_csv(MeanAggCFG.uploaded_model_dir / "submission.csv", index=False)

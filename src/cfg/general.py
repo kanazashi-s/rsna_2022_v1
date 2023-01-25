@@ -13,7 +13,7 @@ class GeneralCFG:
     image_size = 1024
     data_version = "vanilla"
     debug = False
-    num_workers = 2
+    num_workers = 0
     seeds = [42, 43, 44]
     n_fold = 5
     train_fold = [0, 1, 2, 3, 4]

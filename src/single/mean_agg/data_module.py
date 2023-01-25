@@ -1,13 +1,13 @@
 from typing import Optional
 from pathlib import Path
-import pandas as pd
+import polars as pol
 from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 from torchsampler import ImbalancedDatasetSampler
-from data import load_processed_data
-from single.two_view_concat.config import TwoViewConcatCFG
-from single.two_view_concat.dataset import TrainDataset, TestDataset
-from single.two_view_concat.transforms import get_transforms
+from data import load_processed_data_pol
+from single.mean_agg.config import MeanAggCFG
+from single.mean_agg.dataset import TrainDataset, TestDataset
+from single.mean_agg.transforms import get_transforms
 from cfg.general import GeneralCFG
 
 
@@ -20,17 +20,21 @@ class DataModule(pl.LightningDataModule):
         self.num_workers = num_workers
 
     def setup(self, stage="fit") -> None:
-        whole_df = load_processed_data.train(seed=self.seed)
-        whole_df = self._pivot_prediction_id(whole_df, stage="train")
-        assert whole_df["prediction_id"].equals(load_processed_data.sample_oof(seed=self.seed)["prediction_id"])
+        whole_df = load_processed_data_pol.train(seed=self.seed)
 
-        train_df = whole_df[whole_df["fold"] != self.fold]
-        valid_df = whole_df[whole_df["fold"] == self.fold]
+        # polars version
+        whole_df = whole_df.with_column(
+            (pol.col("patient_id").cast(pol.Utf8) + "_" + pol.col("image_id").cast(pol.Utf8) + ".png").alias("image_filename")
+        )
+        train_df = whole_df.filter(pol.col("fold") != self.fold)
+        valid_df = whole_df.filter(pol.col("fold") == self.fold)
 
-        test_df = load_processed_data.test(seed=self.seed)
-        test_df = self._pivot_prediction_id(test_df, stage="test")
-        assert test_df["prediction_id"].equals(load_processed_data.sample_submission(self.seed)["prediction_id"])
+        test_df = load_processed_data_pol.test(seed=self.seed)
+        test_df = test_df.with_column(
+            (pol.col("patient_id").cast(pol.Utf8) + "_" + pol.col("image_id").cast(pol.Utf8) + ".png").alias("image_filename")
+        )
 
+        # TODO: 正解ラベルたちの prediction_id 列と本当に一致しているか調べる
         if GeneralCFG.debug:
             train_df = train_df.head(GeneralCFG.num_use_data).reset_index(drop=True)
             valid_df = valid_df.head(GeneralCFG.num_use_data).reset_index(drop=True)
@@ -92,15 +96,15 @@ class DataModule(pl.LightningDataModule):
         return pivot_df
 
     def train_dataloader(self):
-        if TwoViewConcatCFG.sampler == "ImbalancedDatasetSampler":
+        if MeanAggCFG.sampler == "ImbalancedDatasetSampler":
             sampler_dict = {
                 "sampler": ImbalancedDatasetSampler(
                     self.train_dataset,
-                    num_samples=TwoViewConcatCFG.num_samples_per_epoch,
+                    num_samples=MeanAggCFG.num_samples_per_epoch,
                 ),
                 "shuffle": False
             }
-        elif TwoViewConcatCFG.sampler is None:
+        elif MeanAggCFG.sampler is None:
             sampler_dict = {
                 "shuffle": True
             }

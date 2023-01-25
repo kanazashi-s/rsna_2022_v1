@@ -3,9 +3,9 @@ from pathlib import Path
 from cfg.general import GeneralCFG
 
 
-class TwoViewConcatCFG:
-    output_dir = Path("/workspace", "output", "single", "two_view_concat")
-    upload_name = "two-view-concat-baseline-20220118"
+class MeanAggCFG:
+    output_dir = Path("/workspace", "output", "single", "mean_agg")
+    upload_name = "mean-agg-baseline-20220118"
     model_name = "efficientnet_b0"
     drop_rate = 0.3
     drop_path_rate = 0.2
@@ -38,10 +38,10 @@ class TwoViewConcatCFG:
 
 
 if GeneralCFG.is_kaggle:
-    TwoViewConcatCFG.uploaded_model_dir = Path("/kaggle", "input", TwoViewConcatCFG.upload_name)
-    TwoViewConcatCFG.batch_size = 4
+    MeanAggCFG.uploaded_model_dir = Path("/kaggle", "input", MeanAggCFG.upload_name)
+    MeanAggCFG.batch_size = 4
 
 
 if GeneralCFG.debug:
-    TwoViewConcatCFG.epochs = 2
-    TwoViewConcatCFG.output_dir = Path("/workspace", "output", "single", "debug_two_view_concat")
+    MeanAggCFG.epochs = 2
+    MeanAggCFG.output_dir = Path("/workspace", "output", "single", "debug_mean_agg")

@@ -6,10 +6,10 @@ import numpy as np
 import torch
 import pytorch_lightning as pl
 from cfg.general import GeneralCFG
-from single.two_view_concat.config import TwoViewConcatCFG
-from single.two_view_concat.data_module import DataModule
-from single.two_view_concat.model.lit_module import LitModel
-from single.two_view_concat.evaluate import evaluate
+from single.mean_agg.config import MeanAggCFG
+from single.mean_agg.data_module import DataModule
+from single.mean_agg.model.lit_module import LitModel
+from single.mean_agg.evaluate import evaluate
 from utils.upload_model import create_dataset_metadata
 
 
@@ -20,7 +20,7 @@ def train(run_name: str, seed_list=None, device_idx=0):
         seed_list = GeneralCFG.seeds
 
     for seed in seed_list:
-        output_dir = TwoViewConcatCFG.output_dir / f"seed{seed}"
+        output_dir = MeanAggCFG.output_dir / f"seed{seed}"
         shutil.rmtree(output_dir, ignore_errors=True)
         output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -32,7 +32,7 @@ def train(run_name: str, seed_list=None, device_idx=0):
             data_module = DataModule(
                 seed=seed,
                 fold=fold,
-                batch_size=TwoViewConcatCFG.batch_size,
+                batch_size=MeanAggCFG.batch_size,
                 num_workers=GeneralCFG.num_workers,
             )
             data_module.setup()
@@ -42,7 +42,7 @@ def train(run_name: str, seed_list=None, device_idx=0):
             # mlflow logger
             experiment_name_prefix = "debug_" if GeneralCFG.debug else ""
             mlflow_logger = pl.loggers.MLFlowLogger(
-                experiment_name=experiment_name_prefix + f"two_view_concat_{TwoViewConcatCFG.model_name}",
+                experiment_name=experiment_name_prefix + f"mean_agg_{MeanAggCFG.model_name}",
                 run_name=f"{run_name}_seed_{seed}_fold{fold}",
             )
             mlflow_logger.log_hyperparams(get_param_dict())
@@ -50,11 +50,11 @@ def train(run_name: str, seed_list=None, device_idx=0):
             val_check_interval = len(data_module.train_dataloader()) // 5
 
             loss_callback = pl.callbacks.ModelCheckpoint(
-                monitor=TwoViewConcatCFG.monitor_metric,
+                monitor=MeanAggCFG.monitor_metric,
                 dirpath=output_dir,
                 filename=model_save_name,
                 save_top_k=1,
-                mode=TwoViewConcatCFG.monitor_mode,
+                mode=MeanAggCFG.monitor_mode,
                 # every_n_train_steps=val_check_interval,
                 verbose=True,
             )
@@ -64,11 +64,11 @@ def train(run_name: str, seed_list=None, device_idx=0):
             trainer = pl.Trainer(
                 devices=[device_idx],
                 accelerator="gpu",
-                max_epochs=TwoViewConcatCFG.epochs,
+                max_epochs=MeanAggCFG.epochs,
                 precision="bf16",
                 amp_backend='native',
-                gradient_clip_val=TwoViewConcatCFG.max_grad_norm,
-                accumulate_grad_batches=TwoViewConcatCFG.accumulate_grad_batches,
+                gradient_clip_val=MeanAggCFG.max_grad_norm,
+                accumulate_grad_batches=MeanAggCFG.accumulate_grad_batches,
                 logger=mlflow_logger,
                 default_root_dir=output_dir,
                 callbacks=callbacks,
@@ -82,7 +82,7 @@ def train(run_name: str, seed_list=None, device_idx=0):
         log_all_metrics(mlflow_logger, whole_metrics, metrics_by_folds, metrics_each_fold)
 
         create_dataset_metadata(
-            model_name=f"{TwoViewConcatCFG.upload_name}-seed{seed}",
+            model_name=f"{MeanAggCFG.upload_name}-seed{seed}",
             model_path=output_dir,
         )
 
@@ -100,8 +100,8 @@ def train(run_name: str, seed_list=None, device_idx=0):
     mlflow_logger.log_metrics(metrics_seed_mean_dict)
 
     create_dataset_metadata(
-        model_name=TwoViewConcatCFG.upload_name,
-        model_path=TwoViewConcatCFG.output_dir,
+        model_name=MeanAggCFG.upload_name,
+        model_path=MeanAggCFG.output_dir,
     )
 
     return metrics_seed_mean_dict
@@ -114,18 +114,18 @@ def get_param_dict():
         "num_workers": GeneralCFG.num_workers,
         "n_fold": GeneralCFG.n_fold,
         "num_use_data": GeneralCFG.num_use_data,
-        "model_name": TwoViewConcatCFG.model_name,
-        "lr": TwoViewConcatCFG.lr,
-        "batch_size": TwoViewConcatCFG.batch_size,
-        "epochs": TwoViewConcatCFG.epochs,
-        "max_grad_norm": TwoViewConcatCFG.max_grad_norm,
-        "accumulate_grad_batches": TwoViewConcatCFG.accumulate_grad_batches,
-        "loss_function": TwoViewConcatCFG.loss_function,
-        "pos_weight": TwoViewConcatCFG.pos_weight,
-        "focal_loss_alpha": TwoViewConcatCFG.focal_loss_alpha,
-        "focal_loss_gamma": TwoViewConcatCFG.focal_loss_gamma,
-        "monitor_metric": TwoViewConcatCFG.monitor_metric,
-        "monitor_mode": TwoViewConcatCFG.monitor_mode,
+        "model_name": MeanAggCFG.model_name,
+        "lr": MeanAggCFG.lr,
+        "batch_size": MeanAggCFG.batch_size,
+        "epochs": MeanAggCFG.epochs,
+        "max_grad_norm": MeanAggCFG.max_grad_norm,
+        "accumulate_grad_batches": MeanAggCFG.accumulate_grad_batches,
+        "loss_function": MeanAggCFG.loss_function,
+        "pos_weight": MeanAggCFG.pos_weight,
+        "focal_loss_alpha": MeanAggCFG.focal_loss_alpha,
+        "focal_loss_gamma": MeanAggCFG.focal_loss_gamma,
+        "monitor_metric": MeanAggCFG.monitor_metric,
+        "monitor_mode": MeanAggCFG.monitor_mode,
     }
     return param_dict
 
@@ -173,30 +173,30 @@ def log_all_metrics(mlflow_logger, whole_metrics, metrics_by_folds, metrics_each
 
 
 if __name__ == "__main__":
-    # TwoViewConcatCFG.output_dir = Path("/workspace", "output", "single", "two_view_concat", "baseline_512")
-    # oof_pfbeta_seed_mean = train(f"two_view_concat_baseline", seed_list=[42], device_idx=0)
+    # MeanAggCFG.output_dir = Path("/workspace", "output", "single", "mean_agg", "baseline_512")
+    # oof_pfbeta_seed_mean = train(f"mean_agg_baseline", seed_list=[42], device_idx=0)
 
     # GeneralCFG.num_workers = 4
-    # TwoViewConcatCFG.batch_size = 16
-    # TwoViewConcatCFG.accumulate_grad_batches = 8
-    # TwoViewConcatCFG.output_dir = Path("/workspace", "output", "single", "two_view_concat", "roi_extracted_512")
+    # MeanAggCFG.batch_size = 16
+    # MeanAggCFG.accumulate_grad_batches = 8
+    # MeanAggCFG.output_dir = Path("/workspace", "output", "single", "mean_agg", "roi_extracted_512")
     # GeneralCFG.image_size = 512
     # GeneralCFG.train_image_dir = GeneralCFG.png_data_dir / "roi_extracted_512"
-    # train(f"two_view_concat_roi_extracted_512", seed_list=[42, 43, 44], device_idx=0)
+    # train(f"mean_agg_roi_extracted_512", seed_list=[42, 43, 44], device_idx=0)
 
     # GeneralCFG.num_workers = 4
-    # TwoViewConcatCFG.batch_size = 16
-    # TwoViewConcatCFG.accumulate_grad_batches = 8
-    # TwoViewConcatCFG.output_dir = Path("/workspace", "output", "single", "two_view_concat", "affine_512")
+    # MeanAggCFG.batch_size = 16
+    # MeanAggCFG.accumulate_grad_batches = 8
+    # MeanAggCFG.output_dir = Path("/workspace", "output", "single", "mean_agg", "affine_512")
     # GeneralCFG.image_size = 512
     # GeneralCFG.train_image_dir = GeneralCFG.png_data_dir / "theo_512"
-    # train(f"two_view_concat_affine_512", seed_list=[42, 43, 44], device_idx=0)
+    # train(f"mean_agg_affine_512", seed_list=[42, 43, 44], device_idx=0)
 
     GeneralCFG.num_workers = 4
-    TwoViewConcatCFG.batch_size = 8
-    TwoViewConcatCFG.accumulate_grad_batches = 16
-    TwoViewConcatCFG.output_dir = Path("/workspace", "output", "single", "two_view_concat", "affine_1024_effnetv2s")
+    MeanAggCFG.batch_size = 8
+    MeanAggCFG.accumulate_grad_batches = 16
+    MeanAggCFG.output_dir = Path("/workspace", "output", "single", "mean_agg", "affine_1024_effnetv2s")
     GeneralCFG.image_size = 1044
     GeneralCFG.train_image_dir = GeneralCFG.png_data_dir / "theo_1024"
-    TwoViewConcatCFG.model_name = "efficientnetv2_rw_s"
-    train(f"two_view_concat_affine_1024_effnetv2s", seed_list=[42, 43, 44], device_idx=1)
+    MeanAggCFG.model_name = "efficientnetv2_rw_s"
+    train(f"mean_agg_affine_1024_effnetv2s", seed_list=[42, 43, 44], device_idx=1)

@@ -25,13 +25,21 @@ def make():
 
         sample_oof_df = train_fold_df[["prediction_id", "fold", GeneralCFG.target_col]].copy()
         sample_oof_df = sample_oof_df.drop_duplicates(subset="prediction_id").reset_index(drop=True)
-        sample_oof_df[GeneralCFG.target_col] = np.random.randint(0, 2, sample_oof_df.shape[0])
+        sample_oof_df[GeneralCFG.target_col] = 0
+
+        # TODO: config の num_use_data を使えるようにしたいが、影響範囲が広いので後回し
+        debug_sample_oof_df = sample_oof_df.head(1500).reset_index(drop=True)
+        debug_train_fold_df = train_fold_df.loc[
+            train_fold_df["prediction_id"].isin(debug_sample_oof_df["prediction_id"])
+        ]
 
         # save
         train_fold_df.to_csv(seed_output_path / "train.csv", index=False)
         test_df.to_csv(seed_output_path / "test.csv", index=False)
         sample_submission_df.to_csv(seed_output_path / "sample_submission.csv", index=False)
         sample_oof_df.to_csv(seed_output_path / "sample_oof.csv", index=False)
+        debug_sample_oof_df.to_csv(seed_output_path / "debug_sample_oof.csv", index=False)
+        debug_train_fold_df.to_csv(seed_output_path / "debug_train.csv", index=False)
 
 
 if __name__ == "__main__":

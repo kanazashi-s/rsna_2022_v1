@@ -19,6 +19,8 @@ class ValidNetMixin(pl.LightningModule):
         self.log('pred_mean', (1 / (1 + np.exp(-all_preds))).mean(), on_step=False, on_epoch=True, prog_bar=True, logger=True)
         self.log('pred_mean_0.0', (all_preds >= 0.0).mean(), on_step=False, on_epoch=True, prog_bar=True, logger=True)
 
+        # TODO: validation dataset に合わせて、集約を行う
+
         scores_dict = get_scores.get(all_labels, all_preds)
         for key, value in scores_dict.items():
             # key の末尾が curve の場合は、 plt.Figure オブジェクトが格納されているため、Figure としてロギングする

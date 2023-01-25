@@ -3,7 +3,7 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 from torchvision.io import read_image, ImageReadMode
 from cfg.general import GeneralCFG
-from single.two_view_concat.config import TwoViewConcatCFG
+from single.mean_agg.config import MeanAggCFG
 
 
 def prepare_input(input_img_names, transform, is_inference=False):
@@ -13,13 +13,9 @@ def prepare_input(input_img_names, transform, is_inference=False):
     else:
         img_dir = GeneralCFG.train_image_dir
 
-    mlo_image = read_image(str(img_dir / mlo_image_filename), mode=ImageReadMode.GRAY).float()
-    cc_image = read_image(str(img_dir / cc_image_filename), mode=ImageReadMode.GRAY).float()
-
-    mlo_image = transform(mlo_image)
-    cc_image = transform(cc_image)
-
-    return mlo_image, cc_image
+    image = read_image(str(img_dir / mlo_image_filename), mode=ImageReadMode.GRAY).float()
+    image = transform(image)
+    return image
 
 
 class TrainDataset(Dataset):
@@ -34,7 +30,7 @@ class TrainDataset(Dataset):
     def __getitem__(self, idx):
         row = self.input_df.iloc[idx]
         inputs = prepare_input(
-            row[["CC_image_filename", "MLO_image_filename"]].values,
+            row["image_filename"],
             self.transform,
             is_inference=False
         )
@@ -42,7 +38,7 @@ class TrainDataset(Dataset):
         return inputs, label
 
     def get_labels(self):
-        return self.input_df[GeneralCFG.target_col].values
+        return self.input_df[GeneralCFG.target_col]
 
 
 class TestDataset(Dataset):
@@ -58,7 +54,7 @@ class TestDataset(Dataset):
     def __getitem__(self, idx):
         row = self.input_df.iloc[idx]
         inputs = prepare_input(
-            row[["CC_image_filename", "MLO_image_filename"]].values,
+            row["image_filename"],
             self.transform,
             is_inference=self.is_inference
         )
