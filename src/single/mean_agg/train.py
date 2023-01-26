@@ -20,6 +20,8 @@ def train(run_name: str, seed_list=None, device_idx=0):
         seed_list = GeneralCFG.seeds
 
     for seed in seed_list:
+        if GeneralCFG.debug:
+            MeanAggCFG.output_dir = MeanAggCFG.output_dir.with_name(f"{MeanAggCFG.output_dir.name}_debug")
         output_dir = MeanAggCFG.output_dir / f"seed{seed}"
         shutil.rmtree(output_dir, ignore_errors=True)
         output_dir.mkdir(parents=True, exist_ok=True)
@@ -47,7 +49,7 @@ def train(run_name: str, seed_list=None, device_idx=0):
             )
             mlflow_logger.log_hyperparams(get_param_dict())
 
-            val_check_interval = len(data_module.train_dataloader()) // 5
+            val_check_interval = len(data_module.train_dataloader()) // MeanAggCFG.val_check_per_epoch
 
             loss_callback = pl.callbacks.ModelCheckpoint(
                 monitor=MeanAggCFG.monitor_metric,
@@ -55,7 +57,6 @@ def train(run_name: str, seed_list=None, device_idx=0):
                 filename=model_save_name,
                 save_top_k=1,
                 mode=MeanAggCFG.monitor_mode,
-                # every_n_train_steps=val_check_interval,
                 verbose=True,
             )
             lr_monitor = pl.callbacks.LearningRateMonitor(logging_interval="step")

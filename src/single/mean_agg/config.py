@@ -14,9 +14,9 @@ class MeanAggCFG:
     pool_lr_ratio = 1.0
     fc_lr_ratio = 1.0
     batch_size = 8
-    epochs = 4
+    epochs = 20
     max_grad_norm = 10
-    accumulate_grad_batches = 16
+    accumulate_grad_batches = 8
     init_weight = "orthogonal"
     optimizer_parameters = {
         "betas": (0.9, 0.999),
@@ -32,9 +32,10 @@ class MeanAggCFG:
     sampler = "AtLeastOnePositiveSampler"  # None, "ImbalancedDatasetSampler" or "AtLeastOnePositiveSampler"
     num_samples_per_epoch = None
 
-    monitor_metric = "best_pfbeta"
+    monitor_metric = "auc_pr"
     monitor_mode = "max"
     uploaded_model_dir = output_dir
+    val_check_per_epoch = 2
 
 
 if GeneralCFG.is_kaggle:

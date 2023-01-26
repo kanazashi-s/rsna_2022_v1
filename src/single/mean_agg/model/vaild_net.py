@@ -18,9 +18,9 @@ class ValidNetMixin(pl.LightningModule):
     def validation_epoch_end(self, validation_step_outputs) -> None:
         all_preds = torch.cat([x[1] for x in validation_step_outputs], dim=0).cpu().detach().float().numpy()
         all_labels = torch.cat([x[2] for x in validation_step_outputs], dim=0).cpu().detach().float().numpy()
+        all_preds = (1 / (1 + np.exp(-all_preds)))
         self.log('label_mean', all_labels.mean(), on_step=False, on_epoch=True, prog_bar=True, logger=True)
-        self.log('pred_mean', (1 / (1 + np.exp(-all_preds))).mean(), on_step=False, on_epoch=True, prog_bar=True, logger=True)
-        self.log('pred_mean_0.0', (all_preds >= 0.0).mean(), on_step=False, on_epoch=True, prog_bar=True, logger=True)
+        self.log('pred_mean', all_preds.mean(), on_step=False, on_epoch=True, prog_bar=True, logger=True)
 
         valid_fold_num = self.trainer.datamodule.fold
         seed_num = self.trainer.datamodule.seed
@@ -52,7 +52,7 @@ class ValidNetMixin(pl.LightningModule):
         all_labels = agg_df.select(pol.col("cancer")).to_numpy().flatten()
         all_preds = agg_df.select(pol.col("all_preds")).to_numpy().flatten()
 
-        scores_dict = get_scores.get(all_labels, all_preds)
+        scores_dict = get_scores.get(all_labels, all_preds, is_sigmoid=True)
         for key, value in scores_dict.items():
             # key の末尾が curve の場合は、 plt.Figure オブジェクトが格納されているため、Figure としてロギングする
             if key.endswith("curve"):
