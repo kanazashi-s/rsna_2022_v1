@@ -193,11 +193,12 @@ if __name__ == "__main__":
     # GeneralCFG.train_image_dir = GeneralCFG.png_data_dir / "theo_512"
     # train(f"mean_agg_affine_512", seed_list=[42, 43, 44], device_idx=0)
 
-    GeneralCFG.num_workers = 0
+    GeneralCFG.num_workers = 4
     MeanAggCFG.batch_size = 8
     MeanAggCFG.accumulate_grad_batches = 8
     MeanAggCFG.output_dir = Path("/workspace", "output", "single", "mean_agg", "affine_1024_effnetv2s")
+    MeanAggCFG.epochs = 20
     GeneralCFG.image_size = 1024
     GeneralCFG.train_image_dir = GeneralCFG.png_data_dir / "theo_1024"
     MeanAggCFG.model_name = "efficientnetv2_rw_s"
-    train(f"mean_agg_affine_1024_effnetv2s", seed_list=[42, 43, 44], device_idx=1)
+    train(f"mean_agg_affine_1024_effnetv2s", seed_list=[42], device_idx=1)

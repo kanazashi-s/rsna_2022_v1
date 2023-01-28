@@ -20,6 +20,8 @@ class AtLeastOnePositiveSampler(BatchSampler):
 
             if len(self.remaining_indices) < self.batch_size:
                 subset = self.remaining_indices
+                self.remaining_indices = np.arange(len(self.indices))
+                print("remaining indices has been reset!")
             else:
                 # Get a random subset of remaining indices that doesn't include any positive indices
                 subset = np.random.choice(np.setdiff1d(self.remaining_indices, self.positive_indices),

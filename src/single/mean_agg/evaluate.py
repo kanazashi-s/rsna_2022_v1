@@ -13,7 +13,7 @@ from metrics import calc_oof_score_pol
 
 def evaluate(seed, device_idx=0):
     """
-    学習済みモデルの評価
+    Evaluation
     """
     pl.seed_everything(seed)
     debug = GeneralCFG.debug
