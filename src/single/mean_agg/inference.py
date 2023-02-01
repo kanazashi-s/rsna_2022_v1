@@ -95,4 +95,4 @@ if __name__ == "__main__":
     MeanAggCFG.uploaded_model_dir = Path("/workspace", "output", "single", "mean_agg", "baseline_512")
     predictions_seed_mean_df = calc_seed_mean()
     predictions_seed_mean_df.to_csv(MeanAggCFG.uploaded_model_dir / "submission.csv", index=False)
-    print("test commit edit")
+    print("test commit edit2")
