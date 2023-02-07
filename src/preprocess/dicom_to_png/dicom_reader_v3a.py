@@ -1,17 +1,16 @@
 import os
 import sys
-from typing import (
-    Dict, Optional, Union, List, Tuple, TYPE_CHECKING, cast, Iterable,
-    ByteString
-)
+import shutil
+from typing import List, cast, Iterable
 import pandas as pd
 import numpy as np
 import cv2
 from joblib import Parallel, delayed
-from glob import glob
 from tqdm import tqdm
 import pydicom
 from pydicom.valuerep import VR
+
+sys.path.append("/tmp/nvjpeg2k-python/build/")
 import dicomsdl
 import nvjpeg2k
 
@@ -384,6 +383,18 @@ def normalised_to_8bit(image, photometric_interpretation):
     return norm
 
 
+def normalised_to_16bit(image, photometric_interpretation):
+    xmin = image.min()
+    xmax = image.max()
+    assert xmin >= 0 and xmax <= 65535
+    assert xmax > 1  # 0 - 1 画像が入力されたりしないか？
+
+    image_uint16 = image.astype(np.uint16)
+    if photometric_interpretation == 'MONOCHROME1':
+        image_uint16 = 65535 - image_uint16
+    return image_uint16
+
+
 def resize_image_to_height(image, image_height):
     h, w = image.shape[:2]
     s = image_height/h
@@ -418,7 +429,7 @@ def dicomsdl_parallel_process(d, dcm_dir, image_dir, image_height, is_voi_lut):
         dc = pydicom.dcmread(dcm_file)
         image = apply_voi_lut(image, dc)
         image = image.astype(np.float32)
-    # image = normalised_to_8bit(image, ds.PhotometricInterpretation)  # +1
+    image = normalised_to_8bit(image, ds.PhotometricInterpretation)  # +1
 
     # save as png
     os.makedirs(f'{image_dir}/{d.machine_id}/{d.patient_id}', exist_ok=True)
@@ -426,14 +437,15 @@ def dicomsdl_parallel_process(d, dcm_dir, image_dir, image_height, is_voi_lut):
 
 
 def process_non_j2k(df, dcm_dir, image_dir, image_height, n_jobs, is_voi_lut=True):
-    #https://stackoverflow.com/questions/56659294/does-joblib-parallel-keep-the-original-order-of-data-passed
-    #Parallel(n_jobs=2, backend='multiprocessing')(
+    # https://stackoverflow.com/questions/56659294/does-joblib-parallel-keep-the-original-order-of-data-passed
+    # Parallel(n_jobs=2, backend='multiprocessing')(
+
     Parallel(n_jobs=n_jobs)(
         delayed(dicomsdl_parallel_process)(d, dcm_dir, image_dir, image_height, is_voi_lut)
         for t, d in tqdm(df.iterrows())
     )
 
-#----------------------------------------------------------------
+# ----------------------------------------------------------------
 # nvjpeg2k reader
 
 
@@ -457,7 +469,8 @@ def process_j2k(df, dcm_dir, image_dir, image_height, is_voi_lut=True):
         if is_voi_lut:
             image = apply_voi_lut(image, dc)
             image = image.astype(np.float32)
-        # image = normalised_to_8bit(image, dc.PhotometricInterpretation)
+        image = normalised_to_8bit(image, dc.PhotometricInterpretation)
+        # image = normalised_to_16bit(image, dc.PhotometricInterpretation)
 
         # save as png
         os.makedirs(f'{image_dir}/{d.machine_id}/{d.patient_id}', exist_ok=True)
@@ -468,7 +481,8 @@ if __name__ == "__main__":
     convert_height = 1536
     csv_file = "/workspace/data/raw/train.csv"
     dcm_dir = "/workspace/data/raw/train_images"
-    png_dir = '/tmp/fastest-1536-960-png'
+    png_dir = "/workspace/data/png_converted/lossless"
+    shutil.rmtree(png_dir, ignore_errors=True)
 
     train_df = pd.read_csv(csv_file)
     machine_id_to_transfer = make_transfer_syntax_uid(train_df, dcm_dir)
@@ -483,3 +497,4 @@ if __name__ == "__main__":
 
     print(f'process_non_j2k(): {len(non_j2k_df)}')
     process_non_j2k(non_j2k_df, dcm_dir, png_dir, convert_height, n_jobs=2)
+
