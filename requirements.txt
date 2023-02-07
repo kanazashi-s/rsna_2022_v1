@@ -16,5 +16,6 @@ torchmetrics==0.11.0
 mlflow==2.1.0
 python-gdcm==3.0.20
 pydicom==2.3.1
+dicomsdl==0.109.1
 pylibjpeg==1.4.0
 kaggle==1.5.12
