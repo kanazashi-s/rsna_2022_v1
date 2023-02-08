@@ -400,6 +400,11 @@ def resize_image_to_height(image, image_height):
     s = image_height/h
     if image_height != h:
         image = cv2.resize(image, dsize=None, fx=s, fy=s, interpolation=cv2.INTER_LINEAR)
+    is_horizontal_flip = image[:, :512].sum() < image[:, -512:].sum()
+    if is_horizontal_flip:
+        image = np.fliplr(image)
+
+
     return image
 
 # ----------------------------------------------------------------
@@ -423,7 +428,7 @@ def dicomsdl_parallel_process(d, dcm_dir, image_dir, image_height, is_voi_lut):
     dcm_file = f'{dcm_dir}/{d.patient_id}/{d.image_id}.dcm'
     ds = dicomsdl.open(dcm_file)
     image = dicomsdl_to_numpy_image(ds)
-    # image = resize_image_to_height(image, image_height)
+    image = resize_image_to_height(image, image_height)
 
     if is_voi_lut:
         dc = pydicom.dcmread(dcm_file)
@@ -464,7 +469,7 @@ def process_j2k(df, dcm_dir, image_dir, image_height, is_voi_lut=True):
         offset = dc.PixelData.find(b'\x00\x00\x00\x0C')
         jpeg_stream = bytearray(dc.PixelData[offset:])
         image = j2k_decoder.decode(jpeg_stream)
-        # image = resize_image_to_height(image, image_height)
+        image = resize_image_to_height(image, image_height)
 
         if is_voi_lut:
             image = apply_voi_lut(image, dc)
@@ -481,7 +486,7 @@ if __name__ == "__main__":
     convert_height = 1536
     csv_file = "/workspace/data/raw/train.csv"
     dcm_dir = "/workspace/data/raw/train_images"
-    png_dir = "/workspace/data/png_converted/lossless"
+    png_dir = "/workspace/data/png_converted/1536_ker_png"
     shutil.rmtree(png_dir, ignore_errors=True)
 
     train_df = pd.read_csv(csv_file)

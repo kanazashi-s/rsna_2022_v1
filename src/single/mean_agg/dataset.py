@@ -1,3 +1,4 @@
+from pathlib import Path
 import numpy as np
 import torch
 from torch.utils.data import Dataset, DataLoader
@@ -28,11 +29,18 @@ class TrainDataset(Dataset):
 
     def __getitem__(self, idx):
         row = self.input_df.iloc[idx]
-        inputs = prepare_input(
-            row["image_filename"],
-            self.transform,
-            is_inference=False
-        )
+        if GeneralCFG.train_image_dir.stem in ["lossless", "1536_ker_png"]:
+            inputs = prepare_input(
+                Path(str(row["machine_id"]), str(row["patient_id"]), str(row["image_id"])).with_suffix(".png"),
+                self.transform,
+                is_inference=False
+            )
+        else:
+            inputs = prepare_input(
+                row["image_filename"],
+                self.transform,
+                is_inference=False
+            )
         label = torch.tensor(row[GeneralCFG.target_col]).float().unsqueeze(0)
         return inputs, label
 

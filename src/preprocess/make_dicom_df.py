@@ -25,7 +25,5 @@ if __name__ == "__main__":
         dicom_list.append(d)
 
     dicom_df = pd.DataFrame(dicom_list)
-    # assert len(dicom_df) == len(train_df)
-    df_merge = pd.concat([train_df, dicom_df], axis=1)
-    dicom_df[["Rows", "Columns"]].value_counts()
-    # df_merge.to_csv(GeneralCFG.processed_data_dir / "train_dicom.csv", index=False)
+    assert len(dicom_df) == len(train_df)
+    dicom_df.to_csv(GeneralCFG.processed_data_dir / "train_dicom.csv", index=False)

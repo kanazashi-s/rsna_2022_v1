@@ -44,11 +44,23 @@ def draw_image_max_histogram(
     plt.close()
 
 
+def count_image_height_width(
+    image_paths: list,
+):
+    image_heights = []
+    image_widths = []
+    for image_path in tqdm(image_paths):
+        image = np.array(Image.open(image_path))
+        image_heights.append(image.shape[0])
+        image_widths.append(image.shape[1])
+    return image_heights, image_widths
+
+
 if __name__ == "__main__":
-    lossless_png_dir = Path(GeneralCFG.png_data_dir, "lossless")
+    lossless_png_dir = Path(GeneralCFG.png_data_dir, "1536_ker_png")
     image_paths = get_image_paths(lossless_png_dir)
+    rng = np.random.default_rng(42)
+    image_paths = rng.choice(image_paths, size=2000, replace=False)
     print(len(image_paths))
-    print(image_paths)
-    draw_image_min_histogram(image_paths)
-    draw_image_max_histogram(image_paths)
-    print("Done")
+    image_heights, image_widths = count_image_height_width(image_paths)
+    print(np.unique(image_heights))

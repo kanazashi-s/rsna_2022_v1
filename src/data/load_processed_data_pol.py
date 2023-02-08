@@ -33,3 +33,8 @@ def debug_train(seed: int):
 def debug_sample_oof(seed: int):
     input_path = GeneralCFG.processed_data_dir / GeneralCFG.data_version / f"seed{seed}"
     return pol.read_csv(input_path / "debug_sample_oof.csv")
+
+
+def train_dicom():
+    input_path = GeneralCFG.processed_data_dir
+    return pol.read_csv(input_path / "train_dicom.csv")

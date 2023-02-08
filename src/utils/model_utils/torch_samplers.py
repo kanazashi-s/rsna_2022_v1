@@ -5,7 +5,7 @@ from torch.utils.data import DataLoader
 from torch.utils.data.sampler import BatchSampler
 
 
-class AtLeastOnePositiveSampler(BatchSampler):
+class OnePositiveSampler(BatchSampler):
     def __init__(self, indices, labels, batch_size):
         self.indices = indices
         self.labels = labels
@@ -40,45 +40,143 @@ class AtLeastOnePositiveSampler(BatchSampler):
             return length
 
 
-class BalancedBatchSampler(BatchSampler):
-    """
-    BatchSampler - from a MNIST-like dataset, samples n_classes and within these classes samples n_samples.
-    Returns batches of size n_classes * n_samples
-    """
+class StratifiedOnePositiveSampler(BatchSampler):
+    def __init__(self, indices, labels, batch_size, groups):
+        assert len(indices) == len(labels) == len(groups)
+        self.indices = indices
+        self.labels = labels
+        self.batch_size = batch_size
+        self.groups = groups
+        self.remaining_indices = np.arange(len(self.indices))
+        self.positive_indices = self.indices[self.labels == 1]
 
-    def __init__(self, dataset, n_classes, n_samples):
-        loader = DataLoader(dataset)
-        self.labels_list = []
-        for _, label in loader:
-            self.labels_list.append(label)
-        self.labels = torch.LongTensor(self.labels_list)
-        self.labels_set = list(set(self.labels.numpy()))
-        self.label_to_indices = {label: np.where(self.labels.numpy() == label)[0]
-                                 for label in self.labels_set}
-        for l in self.labels_set:
-            np.random.shuffle(self.label_to_indices[l])
-        self.used_label_indices_count = {label: 0 for label in self.labels_set}
-        self.count = 0
-        self.n_classes = n_classes
-        self.n_samples = n_samples
-        self.dataset = dataset
-        self.batch_size = self.n_samples * self.n_classes
+        self.grouped_indices = {}
+        for group in np.unique(self.groups):
+            self.grouped_indices[group] = np.where(self.groups == group)[0]
 
     def __iter__(self):
-        self.count = 0
-        while self.count + self.batch_size < len(self.dataset):
-            classes = np.random.choice(self.labels_set, self.n_classes, replace=False)
-            indices = []
-            for class_ in classes:
-                indices.extend(self.label_to_indices[class_][
-                               self.used_label_indices_count[class_]:self.used_label_indices_count[
-                                                                         class_] + self.n_samples])
-                self.used_label_indices_count[class_] += self.n_samples
-                if self.used_label_indices_count[class_] + self.n_samples > len(self.label_to_indices[class_]):
-                    np.random.shuffle(self.label_to_indices[class_])
-                    self.used_label_indices_count[class_] = 0
-            yield indices
-            self.count += self.n_classes * self.n_samples
+        while self.remaining_indices.size > 0:
+            if len(self.positive_indices) == 0:
+                raise StopIteration("No positive samples.")
+
+            if len(self.remaining_indices) < self.batch_size:
+                self.remaining_indices = np.arange(len(self.indices))
+                print("remaining indices has been reset!")
+                continue
+
+            else:
+                # Get unique groups from the remaining indices
+                unique_groups = np.unique(self.groups[self.remaining_indices])
+                # ensure that there is at least one positive index in the group
+                # and that there is at least one negative index in the group
+                for group in unique_groups:
+                    group_indices = np.where(self.groups == group)[0]
+                    group_indices = np.intersect1d(group_indices, self.remaining_indices)
+                    group_positive_indices = np.intersect1d(group_indices, self.positive_indices)
+                    group_negative_indices = np.setdiff1d(group_indices, self.positive_indices)
+                    if len(group_positive_indices) == 0 or len(group_negative_indices) == 0:
+                        unique_groups = np.setdiff1d(unique_groups, group)
+                if len(unique_groups) == 0:
+                    self.remaining_indices = np.arange(len(self.indices))
+                    print("remaining indices has been reset!")
+                    continue
+
+                # Select a random group to sample from
+                group = np.random.choice(unique_groups)
+                group_indices = np.where(self.groups == group)[0]
+                group_indices = np.intersect1d(group_indices, self.remaining_indices)
+
+                # Get a random subset of remaining indices that doesn't include any positive indices
+                # and is from the selected group
+                group_negative_indices = np.setdiff1d(group_indices, self.positive_indices)
+                if len(group_negative_indices) < self.batch_size - 1:
+                    subset = group_negative_indices
+                else:
+                    subset = np.random.choice(group_negative_indices, self.batch_size - 1, replace=False)
+
+                # Get a random positive index from the selected group
+                group_positive_indices = np.intersect1d(group_indices, self.positive_indices)
+                positive_index = np.random.choice(group_positive_indices)
+
+                # Concatenate the positive index to the subset
+                subset = np.concatenate((subset, [positive_index]))
+
+            # ensure that the groups of the subset are all the same
+            assert len(np.unique(self.groups[subset])) == 1
+
+            self.remaining_indices = np.setdiff1d(self.remaining_indices, subset)
+            yield subset
 
     def __len__(self):
-        return len(self.dataset) // self.batch_size
+        length = len(self.indices) // self.batch_size
+        if len(self.positive_indices) < length:
+            return len(self.positive_indices)
+        else:
+            return length
+
+
+class StratifiedSampler(BatchSampler):
+    def __init__(self, indices, groups, batch_size):
+        self.indices = indices
+        self.batch_size = batch_size
+        self.groups = groups
+        self.remaining_indices = np.arange(len(self.indices))
+        self.grouped_indices = {}
+        for group in np.unique(self.groups):
+            self.grouped_indices[group] = np.where(self.groups == group)[0]
+
+    def __iter__(self):
+        while self.remaining_indices.size > 0:
+            if len(self.remaining_indices) < self.batch_size:
+                self.remaining_indices = np.arange(len(self.indices))
+                print("remaining indices has been reset!")
+                # raise StopIteration("run out samples.")
+
+            else:
+                # Get unique groups from the remaining indices
+                unique_groups = np.unique(self.groups[self.remaining_indices])
+
+                # Select a random group to sample from
+                group = np.random.choice(unique_groups)
+                group_indices = np.where(self.groups == group)[0]
+                group_indices = np.intersect1d(group_indices, self.remaining_indices)
+
+                # Get a random subset of indices that is from the selected group
+                if len(group_indices) < self.batch_size:
+                    subset = group_indices
+                else:
+                    subset = np.random.choice(group_indices, self.batch_size, replace=False)
+
+            yield self.indices[subset]
+            self.remaining_indices = np.setdiff1d(self.remaining_indices, subset)
+
+    def __len__(self):
+        return len(self.indices) // self.batch_size
+
+
+if __name__ == "__main__":
+    # Test StratifiedOnePositiveSampler
+    indices = np.arange(300)
+    rng = np.random.RandomState(0)
+    labels = rng.choice([0, 1], 300, p=[0.95, 0.05])
+    groups = rng.choice([100, 200, 300], 300, p=[0.6, 0.3, 0.1])
+    sampler = StratifiedOnePositiveSampler(indices, labels, 8, groups)
+    # for batch in sampler:
+    #     # ensure that the groups of the batch are all the same
+    #     assert len(np.unique(groups[batch])) == 1
+    #     # ensure that there is one positive index in the batch
+    #     assert np.sum(labels[batch]) == 1
+    #     # ensure that there is at least one negative index in the batch
+    #     assert np.sum(labels[batch]) < len(batch)
+
+    # Test StratifiedSampler
+    indices = np.arange(300)
+    rng = np.random.RandomState(0)
+    labels = rng.choice([0, 1], 300, p=[0.95, 0.05])
+    groups = rng.choice([100, 200, 300], 300, p=[0.6, 0.3, 0.1])
+    sampler = StratifiedSampler(indices, groups, 8)
+    for batch in sampler:
+        # ensure that the groups of the batch are all the same
+        assert len(np.unique(groups[batch])) == 1
+        print(batch)
+

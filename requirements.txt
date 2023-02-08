@@ -18,4 +18,5 @@ python-gdcm==3.0.20
 pydicom==2.3.1
 dicomsdl==0.109.1
 pylibjpeg==1.4.0
+ipywidgets==8.0.4
 kaggle==1.5.12

@@ -5,7 +5,7 @@ import polars as pol
 from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 from torchsampler import ImbalancedDatasetSampler
-from utils.model_utils.torch_samplers import AtLeastOnePositiveSampler
+from utils.model_utils.torch_samplers import OnePositiveSampler, StratifiedOnePositiveSampler, StratifiedSampler
 from data import load_processed_data_pol
 from single.mean_agg.config import MeanAggCFG
 from single.mean_agg.dataset import TrainDataset, TestDataset
@@ -23,6 +23,11 @@ class DataModule(pl.LightningDataModule):
 
     def setup(self, stage="fit") -> None:
         whole_df = load_processed_data_pol.train(seed=self.seed)
+
+        train_dicom_df = load_processed_data_pol.train_dicom()
+        whole_df = pol.concat([whole_df, train_dicom_df], how="horizontal")
+        assert whole_df.get_column("PatientID").series_equal(whole_df.get_column("patient_id").alias("PatientID"))
+        assert whole_df.get_column("laterality").series_equal(whole_df.get_column("ImageLaterality").alias("laterality"))
 
         # polars version
         whole_df = whole_df.with_column(
@@ -57,12 +62,22 @@ class DataModule(pl.LightningDataModule):
                 "shuffle": False,
                 "batch_size": self.batch_size
             }
-        elif MeanAggCFG.sampler == "AtLeastOnePositiveSampler":
+        elif MeanAggCFG.sampler == "OnePositiveSampler":
             sampler_dict = {
-                "batch_sampler": AtLeastOnePositiveSampler(
+                "batch_sampler": OnePositiveSampler(
                     indices=np.arange(len(self.train_dataset)),
                     labels=self.train_dataset.input_df[GeneralCFG.target_col].to_numpy(),
                     batch_size=self.batch_size,
+                ),
+                # "shuffle": False
+            }
+        elif MeanAggCFG.sampler == "StratifiedOnePositiveSampler":
+            sampler_dict = {
+                "batch_sampler": StratifiedOnePositiveSampler(
+                    indices=np.arange(len(self.train_dataset)),
+                    labels=self.train_dataset.input_df[GeneralCFG.target_col].to_numpy(),
+                    batch_size=self.batch_size,
+                    groups=self.train_dataset.input_df["Rows"].to_numpy(),
                 ),
                 # "shuffle": False
             }
@@ -81,12 +96,25 @@ class DataModule(pl.LightningDataModule):
         )
 
     def val_dataloader(self):
+        if MeanAggCFG.sampler == "StratifiedOnePositiveSampler":
+            sampler_dict = {
+                "batch_sampler": StratifiedSampler(
+                    indices=np.arange(len(self.valid_dataset)),
+                    groups=self.valid_dataset.input_df["Rows"].to_numpy(),
+                    batch_size=self.batch_size,
+                ),
+            }
+        else:
+            sampler_dict = {
+                "shuffle": False,
+                "batch_size": self.batch_size
+            }
         return DataLoader(
             self.valid_dataset,
-            batch_size=self.batch_size,
             num_workers=self.num_workers,
-            shuffle=False
+            **sampler_dict
         )
+
 
     def test_dataloader(self):
         return DataLoader(

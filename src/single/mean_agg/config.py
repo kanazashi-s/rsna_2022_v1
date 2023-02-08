@@ -5,7 +5,7 @@ from cfg.general import GeneralCFG
 
 class MeanAggCFG:
     output_dir = Path("/workspace", "output", "single", "mean_agg")
-    upload_name = "mean-agg-baseline-20220118"
+    upload_name = "mean-agg-baseline-20220208"
     model_name = "efficientnet_b0"
     drop_rate = 0.3
     drop_path_rate = 0.2
@@ -29,7 +29,7 @@ class MeanAggCFG:
     pos_weight = [1.0]  # only used when loss_function == "BCEWithLogitsLoss"
     focal_loss_alpha = 1.0  # only used when loss_function == "SigmoidFocalLoss"
     focal_loss_gamma = 2.0  # only used when loss_function == "SigmoidFocalLoss"
-    sampler = "AtLeastOnePositiveSampler"  # None, "ImbalancedDatasetSampler" or "AtLeastOnePositiveSampler"
+    sampler = "StratifiedOnePositiveSampler"  # None, "ImbalancedDatasetSampler" or "OnePositiveSampler"
     num_samples_per_epoch = None
 
     monitor_metric = "auc_pr"
