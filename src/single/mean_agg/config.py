@@ -9,7 +9,7 @@ class MeanAggCFG:
     model_name = "efficientnet_b0"
     drop_rate = 0.3
     drop_path_rate = 0.2
-    lr = 3e-4
+    lr = 1.5e-4
     backbone_lr_ratio = 1.0
     pool_lr_ratio = 1.0
     fc_lr_ratio = 1.0
@@ -22,14 +22,14 @@ class MeanAggCFG:
         "betas": (0.9, 0.999),
         "eps": 1e-8,
     }
-    weight_decay = 0.01
+    weight_decay = 1e-4
     warmup_epochs = 1
 
     loss_function = "SigmoidFocalLoss"
     pos_weight = [1.0]  # only used when loss_function == "BCEWithLogitsLoss"
     focal_loss_alpha = 1.0  # only used when loss_function == "SigmoidFocalLoss"
     focal_loss_gamma = 2.0  # only used when loss_function == "SigmoidFocalLoss"
-    sampler = "StratifiedOnePositiveSampler"  # None, "ImbalancedDatasetSampler" or "OnePositiveSampler"
+    sampler = "OnePositiveSampler"  # None, "ImbalancedDatasetSampler" or "OnePositiveSampler"
     num_samples_per_epoch = None
 
     monitor_metric = "auc_pr"

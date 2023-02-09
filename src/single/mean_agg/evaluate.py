@@ -73,6 +73,8 @@ def evaluate(seed, device_idx=0):
             pol.col("cancer")
         ])
 
+    train_df.write_csv(MeanAggCFG.output_dir / "oof_before_agg.csv")
+
     oof_df = oof_df.filter(
         pol.col("fold").is_in(GeneralCFG.train_fold)
     ).select([
@@ -93,10 +95,14 @@ def evaluate(seed, device_idx=0):
 
 
 if __name__ == "__main__":
-    MeanAggCFG.output_dir = Path("/workspace", "output", "single", "mean_agg", "affine_1024_effnetv2s_debug")
-    GeneralCFG.image_size = 1024
-    GeneralCFG.train_image_dir = GeneralCFG.png_data_dir / "theo_1024"
-    MeanAggCFG.model_name = "efficientnetv2_rw_s"
-    whole_metrics, metrics_by_folds, metrics_each_fold = evaluate(seed=42, device_idx=0)
+    MeanAggCFG.output_dir = Path("/workspace", "output", "single", "mean_agg", "1536_ker_baseline")
+    # GeneralCFG.image_size = 1536
+    # GeneralCFG.train_image_dir = GeneralCFG.png_data_dir / "1536_ker_png"
+    # GeneralCFG.num_workers = 4
+    # MeanAggCFG.model_name = "efficientnetv2_rw_s"
+    # whole_metrics, metrics_by_folds, metrics_each_fold = evaluate(seed=42, device_idx=1)
+    # print(metrics_by_folds)
+    oof_df = pol.read_csv(MeanAggCFG.output_dir / "oof.csv")
+    whole_metrics, metrics_by_folds, metrics_each_fold = calc_oof_score_pol.calc(oof_df, is_debug=False, seed=42, is_sigmoid=True)
     print(metrics_by_folds)
 

@@ -53,6 +53,12 @@ def count_image_height_width(
         image = np.array(Image.open(image_path))
         image_heights.append(image.shape[0])
         image_widths.append(image.shape[1])
+
+        # 画像をpng形式で保存
+        output_path = Path("/workspace", "output", "1536_ker_png", image_path.name)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        Image.fromarray(image).save(output_path)
+
     return image_heights, image_widths
 
 

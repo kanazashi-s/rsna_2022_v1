@@ -60,9 +60,16 @@ class TestDataset(Dataset):
 
     def __getitem__(self, idx):
         row = self.input_df.iloc[idx]
-        inputs = prepare_input(
-            row["image_filename"],
-            self.transform,
-            is_inference=self.is_inference
-        )
+        if GeneralCFG.train_image_dir.stem in ["lossless", "1536_ker_png"]:
+            inputs = prepare_input(
+                Path(str(row["machine_id"]), str(row["patient_id"]), str(row["image_id"])).with_suffix(".png"),
+                self.transform,
+                is_inference=False
+            )
+        else:
+            inputs = prepare_input(
+                row["image_filename"],
+                self.transform,
+                is_inference=self.is_inference
+            )
         return inputs

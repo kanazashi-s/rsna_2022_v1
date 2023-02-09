@@ -6,29 +6,40 @@ from torch.utils.data.sampler import BatchSampler
 
 
 class OnePositiveSampler(BatchSampler):
-    def __init__(self, indices, labels, batch_size):
+    def __init__(self, indices, labels, batch_size, sampler=None):
         self.indices = indices
         self.labels = labels
         self.batch_size = batch_size
+        self.sampler = sampler
         self.remaining_indices = np.arange(len(self.indices))
         self.positive_indices = self.indices[self.labels == 1]
 
     def __iter__(self):
         while self.remaining_indices.size > 0:
-            if len(self.positive_indices) == 0:
-                raise StopIteration("No positive samples.")
+            if len(np.intersect1d(self.remaining_indices, self.positive_indices)) == 0:
+                self.remaining_indices = np.concatenate((self.remaining_indices, self.positive_indices))
+                print("Running out of positive samples. Added all positive samples to remaining indices.")
 
-            if len(self.remaining_indices) < self.batch_size:
-                subset = self.remaining_indices
+            if len(np.setdiff1d(self.remaining_indices, self.positive_indices)) < self.batch_size - 1:
+                subset = np.setdiff1d(self.remaining_indices, self.positive_indices)
                 self.remaining_indices = np.arange(len(self.indices))
-                print("remaining indices has been reset!")
+                print(f"Num of neg samples of this batch is {len(subset)}. \nRemaining indices has been reset!")
             else:
+                rng = np.random.default_rng()
                 # Get a random subset of remaining indices that doesn't include any positive indices
-                subset = np.random.choice(np.setdiff1d(self.remaining_indices, self.positive_indices),
-                                          self.batch_size - 1, replace=False)
-                positive_index = np.random.choice(self.positive_indices)
-                # Concatenate the positive index to the subset
-                subset = np.concatenate((subset, [positive_index]))
+                subset = rng.choice(
+                    np.setdiff1d(self.remaining_indices, self.positive_indices),
+                    self.batch_size - 1,
+                    replace=False
+                )
+            # Get a random positive index
+            positive_index = rng.choice(
+                np.intersect1d(self.remaining_indices, self.positive_indices),
+                replace=False
+            )
+
+            # Concatenate the positive index to the subset
+            subset = np.concatenate((subset, [positive_index]))
             yield self.indices[subset]
             self.remaining_indices = np.setdiff1d(self.remaining_indices, subset)
 

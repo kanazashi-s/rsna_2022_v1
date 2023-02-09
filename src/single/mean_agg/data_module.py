@@ -24,10 +24,11 @@ class DataModule(pl.LightningDataModule):
     def setup(self, stage="fit") -> None:
         whole_df = load_processed_data_pol.train(seed=self.seed)
 
-        train_dicom_df = load_processed_data_pol.train_dicom()
-        whole_df = pol.concat([whole_df, train_dicom_df], how="horizontal")
-        assert whole_df.get_column("PatientID").series_equal(whole_df.get_column("patient_id").alias("PatientID"))
-        assert whole_df.get_column("laterality").series_equal(whole_df.get_column("ImageLaterality").alias("laterality"))
+        if not GeneralCFG.debug:
+            train_dicom_df = load_processed_data_pol.train_dicom()
+            whole_df = pol.concat([whole_df, train_dicom_df], how="horizontal")
+            assert whole_df.get_column("PatientID").series_equal(whole_df.get_column("patient_id").alias("PatientID"))
+            assert whole_df.get_column("laterality").series_equal(whole_df.get_column("ImageLaterality").alias("laterality"))
 
         # polars version
         whole_df = whole_df.with_column(
@@ -127,14 +128,14 @@ class DataModule(pl.LightningDataModule):
     def predict_dataloader(self):
         return DataLoader(
             self.val_predict_dataset,
-            batch_size=self.batch_size,
+            batch_size=self.batch_size * 4,
             num_workers=self.num_workers,
             shuffle=False
         )
 
 
 if __name__ == "__main__":
-    data_module = DataModule(seed=42, fold=0, batch_size=2, num_workers=1)
+    data_module = DataModule(seed=42, fold=0, batch_size=2, num_workers=0)
     data_module.setup()
     for inputs, labels in data_module.train_dataloader():
         print(inputs)

@@ -395,15 +395,25 @@ def normalised_to_16bit(image, photometric_interpretation):
     return image_uint16
 
 
-def resize_image_to_height(image, image_height):
+def resize_image_to_height(image, image_height, photometric_interpretation):
     h, w = image.shape[:2]
     s = image_height/h
     if image_height != h:
         image = cv2.resize(image, dsize=None, fx=s, fy=s, interpolation=cv2.INTER_LINEAR)
-    is_horizontal_flip = image[:, :512].sum() < image[:, -512:].sum()
+    new_image_width = image.shape[1]
+    is_horizontal_flip = image[:, :new_image_width//2].sum() < image[:, new_image_width//2:].sum()
+    if photometric_interpretation == 'MONOCHROME1':
+        is_horizontal_flip = not is_horizontal_flip
     if is_horizontal_flip:
         image = np.fliplr(image)
 
+    padding_dict = {
+        "top": 0,
+        "bottom": 0,
+        "left": 0,
+        "right": 1410 - new_image_width,
+    }
+    image = cv2.copyMakeBorder(image, **padding_dict, borderType=cv2.BORDER_CONSTANT, value=[0, 0, 0])
 
     return image
 
@@ -428,7 +438,7 @@ def dicomsdl_parallel_process(d, dcm_dir, image_dir, image_height, is_voi_lut):
     dcm_file = f'{dcm_dir}/{d.patient_id}/{d.image_id}.dcm'
     ds = dicomsdl.open(dcm_file)
     image = dicomsdl_to_numpy_image(ds)
-    image = resize_image_to_height(image, image_height)
+    image = resize_image_to_height(image, image_height, ds.PhotometricInterpretation)
 
     if is_voi_lut:
         dc = pydicom.dcmread(dcm_file)
@@ -469,7 +479,7 @@ def process_j2k(df, dcm_dir, image_dir, image_height, is_voi_lut=True):
         offset = dc.PixelData.find(b'\x00\x00\x00\x0C')
         jpeg_stream = bytearray(dc.PixelData[offset:])
         image = j2k_decoder.decode(jpeg_stream)
-        image = resize_image_to_height(image, image_height)
+        image = resize_image_to_height(image, image_height, dc.PhotometricInterpretation)
 
         if is_voi_lut:
             image = apply_voi_lut(image, dc)
