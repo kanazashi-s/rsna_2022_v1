@@ -73,8 +73,8 @@ class TrainDataset(Dataset):
             )
         label = torch.tensor(row[GeneralCFG.target_col]).float().unsqueeze(0)
 
-        if not self.is_validation:
-            label = modify_labels(label, row)
+        # if not self.is_validation:
+        #     label = modify_labels(label, row)
 
         return inputs, label
 
