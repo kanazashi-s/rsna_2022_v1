@@ -65,6 +65,7 @@ def train(run_name: str, seed_list=None, device_idx=0):
                 swa_epoch_start=15,
                 annealing_epochs=0,
             )
+
             callbacks = [loss_callback, lr_monitor, swa_callback]
 
             trainer = pl.Trainer(
