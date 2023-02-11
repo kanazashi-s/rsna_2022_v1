@@ -62,9 +62,8 @@ def train(run_name: str, seed_list=None, device_idx=0):
             lr_monitor = pl.callbacks.LearningRateMonitor(logging_interval="step")
             swa_callback = pl.callbacks.StochasticWeightAveraging(
                 swa_lrs=1e-5,
-                swa_epoch_start=10,
-                annealing_epochs=5,
-                annealing_strategy="cos",
+                swa_epoch_start=15,
+                annealing_epochs=0,
             )
             callbacks = [loss_callback, lr_monitor, swa_callback]
 
@@ -211,12 +210,12 @@ if __name__ == "__main__":
     # train(f"mean_agg_1536_ker_baseline_effnetv2s", seed_list=[42], device_idx=1)
 
     GeneralCFG.num_workers = 2
-    MeanAggCFG.batch_size = 8
-    MeanAggCFG.accumulate_grad_batches = 8
-    MeanAggCFG.output_dir = Path("/workspace", "output", "single", "mean_agg", "1536_ker_swa")
+    MeanAggCFG.batch_size = 12
+    MeanAggCFG.accumulate_grad_batches = 4
+    MeanAggCFG.output_dir = Path("/workspace", "output", "single", "mean_agg", "1536_ker_swa_smooth")
     MeanAggCFG.epochs = 20
-    MeanAggCFG.lr = 3e-4
+    MeanAggCFG.lr = 2e-4
     GeneralCFG.image_size = 1024
     GeneralCFG.train_image_dir = GeneralCFG.png_data_dir / "1536_ker_png"
     MeanAggCFG.model_name = "efficientnetv2_rw_s"
-    train(f"mean_agg_1536_ker_swa_effnetv2s", seed_list=[42], device_idx=0)
+    train(f"1536_ker_swa_smooth_effnetv2s", seed_list=[42], device_idx=0)

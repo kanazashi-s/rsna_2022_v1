@@ -45,7 +45,7 @@ class DataModule(pl.LightningDataModule):
         transforms_no_aug = get_transforms(augment=False)
         transforms_aug = get_transforms(augment=True)
         self.train_dataset = TrainDataset(train_df, transforms_aug)
-        self.valid_dataset = TrainDataset(valid_df, transforms_no_aug)
+        self.valid_dataset = TrainDataset(valid_df, transforms_no_aug, is_validation=True)
         self.test_dataset = TestDataset(test_df, transforms_no_aug, is_inference=True)
         self.val_predict_dataset = TestDataset(
             valid_df.drop(columns=[GeneralCFG.target_col, "fold"]),

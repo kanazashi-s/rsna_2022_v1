@@ -1,5 +1,6 @@
 from pathlib import Path
 import numpy as np
+import pandas as pd
 import torch
 from torch.utils.data import Dataset, DataLoader
 from torchvision.io import read_image, ImageReadMode
@@ -18,11 +19,40 @@ def prepare_input(input_img_name, transform, is_inference=False):
     return image
 
 
+def modify_labels(label: int, row: pd.Series) -> float:
+    """
+    Modify labels to be more smooth
+    """
+    if label == 1:
+        ret_val = 1
+        if row["invasive"] == 1:
+            ret_val -= 0.02
+        else:
+            ret_val -= 0.05
+        return ret_val
+    else:
+        ret_val = 0
+        if row["BIRADS"] in [1, 2]:
+            # 良性もしくは異常所見なしと、マンモグラムで判断できるとのことなので、ほぼ0
+            ret_val += 0.02
+            return ret_val
+        else:
+            ret_val += 0.05
+            if row["difficult_negative_case"] == 1:
+                ret_val += 0.02
+            if row["biopsy"] == 1:
+                ret_val += 0.03
+            if row["density"] == "D":
+                ret_val += 0.03
+            return ret_val
+
+
 class TrainDataset(Dataset):
-    def __init__(self, input_df, transform):
+    def __init__(self, input_df, transform, is_validation=False):
         super().__init__()
         self.input_df = input_df.to_pandas()
         self.transform = transform
+        self.is_validation = is_validation
 
     def __len__(self):
         return len(self.input_df)
@@ -42,6 +72,10 @@ class TrainDataset(Dataset):
                 is_inference=False
             )
         label = torch.tensor(row[GeneralCFG.target_col]).float().unsqueeze(0)
+
+        if not self.is_validation:
+            label = modify_labels(label, row)
+
         return inputs, label
 
     def get_labels(self):
