@@ -23,7 +23,7 @@ def evaluate(seed):
         valid_features_df = whole_features_df.filter(
             pol.col("fold") == fold
         )
-        valid_X = valid_features_df.drop(meta_cols + GeneralCFG.target_col).to_numpy()
+        valid_X = valid_features_df.drop(meta_cols + [GeneralCFG.target_col]).to_pandas()
 
         model = lgb.Booster(model_file=f"{input_dir}/best_loss_fold{fold}.txt")
         fold_i_val_pred = model.predict(valid_X)
@@ -41,12 +41,13 @@ def evaluate(seed):
         ).select([
             pol.col("prediction_id"),
             pol.col("fold"),
-            (pol.col("prediction") + pol.col("prediction_i")).alias("prediction"),
+            (pol.col("prediction") + pol.col("prediction_i").fill_null(pol.lit(0))).alias("prediction"),
+            pol.col(GeneralCFG.target_col)
         ])
 
     oof_df.write_csv(LGBMStackingCFG.output_dir / f"oof.csv")
     whole_metrics, metrics_by_folds, metrics_each_fold = calc_oof_score_pol.calc(
-        oof_df, is_debug=debug, seed=seed, is_sigmoid=True
+        oof_df, is_debug=GeneralCFG.debug, seed=seed, is_sigmoid=True
     )
     return whole_metrics, metrics_by_folds, metrics_each_fold
 

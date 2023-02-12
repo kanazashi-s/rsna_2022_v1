@@ -2,6 +2,7 @@ from pathlib import Path
 import shutil
 from collections import defaultdict
 import lightgbm as lgb
+import numpy as np
 import polars as pol
 import mlflow
 from cfg.general import GeneralCFG
@@ -9,6 +10,7 @@ from data import load_processed_data_pol
 from features import build_features
 from stacking.lgbm_stacking.config import LGBMStackingCFG
 from stacking.lgbm_stacking.evaluate import evaluate
+from utils.upload_model import create_dataset_metadata
 
 
 def train(run_name: str, seed_list=None):
@@ -48,10 +50,10 @@ def train(run_name: str, seed_list=None):
             )
 
             meta_cols = ["prediction_id", "fold"]
-            train_X = train_features_df.drop(meta_cols + [GeneralCFG.target_col]).to_numpy()
-            train_y = train_features_df.select(GeneralCFG.target_col).to_numpy()
-            valid_X = valid_features_df.drop(meta_cols + [GeneralCFG.target_col]).to_numpy()
-            valid_y = valid_features_df.select(GeneralCFG.target_col).to_numpy()
+            train_X = train_features_df.drop(meta_cols + [GeneralCFG.target_col]).to_pandas()
+            train_y = train_features_df.select(GeneralCFG.target_col).to_pandas()
+            valid_X = valid_features_df.drop(meta_cols + [GeneralCFG.target_col]).to_pandas()
+            valid_y = valid_features_df.select(GeneralCFG.target_col).to_pandas()
 
             model = lgb.train(
                 params=LGBMStackingCFG.lgbm_params,
@@ -76,7 +78,7 @@ def train(run_name: str, seed_list=None):
     metrics_seed_mean_dict = {}
     for key, value in metrics_seed_dict.items():
         metrics_seed_mean_dict[f"seed_mean_{key}"] = np.mean(value)
-    mlflow_logger.log_metrics(metrics_seed_mean_dict)
+    mlflow.log_metrics(metrics=metrics_seed_mean_dict)
 
     create_dataset_metadata(
         model_name=LGBMStackingCFG.upload_name,
@@ -127,14 +129,13 @@ def log_all_metrics(whole_metrics, metrics_by_folds, metrics_each_fold):
     mlflow.log_metrics(num_metrics_dict)
 
     # log fig metrics
-    run_id = mlflow_logger.run_id
     for key, value in whole_metrics.items():
         if key.endswith("curve"):
-            mlflow_logger.experiment.log_figure(run_id, value, f"whole_{key}.png")
+            mlflow.log_figure(value, f"whole_{key}.png")
     for i, metrics_one_fold in enumerate(metrics_each_fold):
         for key, value in metrics_one_fold.items():
             if key.endswith("curve"):
-                mlflow_logger.experiment.log_figure(run_id, value, f"each_fold_{i}_{key}.png")
+                mlflow.log_figure(value, f"each_fold_{i}_{key}.png")
 
 
 if __name__ == "__main__":
