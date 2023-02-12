@@ -1,4 +1,6 @@
 import os
+os.environ['CUDA_MODULE_LOADING']='LAZY'
+
 import sys
 import shutil
 from typing import List, cast, Iterable
@@ -493,7 +495,7 @@ def process_j2k(df, dcm_dir, image_dir, image_height, is_voi_lut=True):
         cv2.imwrite(f'{image_dir}/{d.machine_id}/{d.patient_id}/{d.image_id}.png', image)
 
 
-if __name__ == "__main__":
+def main():
     convert_height = 1536
 
     csv_file = GeneralCFG.raw_data_dir / "test.csv"
@@ -516,3 +518,6 @@ if __name__ == "__main__":
     print(f'process_non_j2k(): {len(non_j2k_df)}')
     process_non_j2k(non_j2k_df, dcm_dir, png_dir, convert_height, n_jobs=2)
 
+
+if __name__ == "__main__":
+    main()
