@@ -62,7 +62,7 @@ def inference(seed):
         pol.col("prediction_id"),
     ]).join(
         test_df.groupby("prediction_id").agg(
-            (pol.col("prediction").mean() >= 0.52).cast(pol.Int32).alias("cancer")
+            (pol.col("prediction").mean() >= 0.49).cast(pol.Int32).alias("cancer")
         ),
         on="prediction_id",
         how="left"
