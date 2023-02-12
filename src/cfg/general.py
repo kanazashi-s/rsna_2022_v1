@@ -9,7 +9,7 @@ class GeneralCFG:
     processed_data_dir = Path("/kaggle", "working", "processed") if is_kaggle else data_dir / "processed"
     png_data_dir = data_dir / "png_converted"
     train_image_dir = png_data_dir / "1536_ker_png"
-    test_image_dir = Path("/kaggle", "working", "1536_ker_png_test") if is_kaggle else png_data_dir / "1536_ker_png_test"
+    test_image_dir = Path("/tmp", "1536_ker_png_test") if is_kaggle else png_data_dir / "1536_ker_png_test"
     image_size = 1536
     data_version = "vanilla"
     debug = os.environ.get('DEBUG_FLG', '0') == '1'
@@ -22,7 +22,7 @@ class GeneralCFG:
 
 
 if GeneralCFG.is_kaggle:
-    GeneralCFG.j2k_dir = Path("/kaggle", "working", "j2k_dir")
+    GeneralCFG.j2k_dir = Path("/tmp", "j2k_dir")
 
 
 if GeneralCFG.debug:

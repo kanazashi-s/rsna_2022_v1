@@ -13,6 +13,7 @@ from pydicom.valuerep import VR
 sys.path.append("/tmp/nvjpeg2k-python/build/")
 import dicomsdl
 import nvjpeg2k
+from cfg.general import GeneralCFG
 
 
 def apply_voi_lut(
@@ -494,9 +495,11 @@ def process_j2k(df, dcm_dir, image_dir, image_height, is_voi_lut=True):
 
 if __name__ == "__main__":
     convert_height = 1536
-    csv_file = "/workspace/data/raw/test.csv"
-    dcm_dir = "/workspace/data/raw/test_images"
-    png_dir = "/workspace/data/png_converted/1536_ker_png_test"
+
+    csv_file = GeneralCFG.raw_data_dir / "test.csv"
+    dcm_dir = GeneralCFG.raw_data_dir / "test_images"
+    png_dir = GeneralCFG.png_converted_dir / f"1536_ker_png_test"
+
     shutil.rmtree(png_dir, ignore_errors=True)
 
     train_df = pd.read_csv(csv_file)
