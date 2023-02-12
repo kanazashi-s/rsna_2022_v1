@@ -36,5 +36,8 @@ def debug_sample_oof(seed: int):
 
 
 def train_dicom():
-    input_path = GeneralCFG.processed_data_dir
+    if GeneralCFG.is_kaggle:
+        input_path = Path("/kaggle/input/rsna-train-dicom")
+    else:
+        input_path = GeneralCFG.processed_data_dir
     return pol.read_csv(input_path / "train_dicom.csv")
