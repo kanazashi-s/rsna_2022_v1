@@ -33,7 +33,7 @@ def inference(seed):
 
         trainer = pl.Trainer(
             accelerator="gpu",
-            devices=[1],  # For the Kaggle environment
+            devices=[0],  # For the Kaggle environment
             # precision="bf16",  # For the Kaggle environment
         )
 
