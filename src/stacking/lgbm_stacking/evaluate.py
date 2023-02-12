@@ -3,6 +3,7 @@ import lightgbm as lgb
 import polars as pol
 from cfg.general import GeneralCFG
 from data import load_processed_data_pol
+from features import build_features
 from stacking.lgbm_stacking.config import LGBMStackingCFG
 from metrics import calc_oof_score_pol
 
@@ -14,7 +15,7 @@ def evaluate(seed):
     whole_base_df = oof_df.select(
         pol.col("prediction_id")
     )
-    whole_features_df = build_features.make(whole_base_df, LGBMStackingCFG.use_features)
+    whole_features_df = build_features.make(use_features=LGBMStackingCFG.use_features, X_base=whole_base_df, seed=seed)
 
     for fold in GeneralCFG.train_fold:
         input_dir = LGBMStackingCFG.output_dir / f"seed{seed}"

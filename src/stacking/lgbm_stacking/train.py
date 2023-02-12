@@ -1,4 +1,6 @@
 from pathlib import Path
+import shutil
+from collections import defaultdict
 import lightgbm as lgb
 import polars as pol
 import mlflow
@@ -23,14 +25,18 @@ def train(run_name: str, seed_list=None):
         whole_base_df = load_processed_data_pol.sample_oof(seed=seed).select(
             pol.col("prediction_id")
         )
-        whole_features_df = build_features.make(whole_base_df, LGBMStackingCFG.use_features)
+        whole_features_df = build_features.make(
+            use_features=LGBMStackingCFG.use_features,
+            X_base=whole_base_df,
+            seed=seed
+        )
 
         # mlflow logger
         experiment_name_prefix = "debug_" if GeneralCFG.debug else ""
         mlflow.set_experiment(experiment_name_prefix + f"lgbm_stacking_{LGBMStackingCFG.model_name}")
 
         for fold in GeneralCFG.train_fold:
-            mlflow.lightgbm.autolog(log_models=False, run_name=f"{run_name}_seed_{seed}_fold{fold}")
+            mlflow.lightgbm.autolog(log_models=False)
 
             model_save_name = f"best_loss_fold{fold}"
 
@@ -42,22 +48,19 @@ def train(run_name: str, seed_list=None):
             )
 
             meta_cols = ["prediction_id", "fold"]
-            train_X = train_features_df.drop(meta_cols + GeneralCFG.target_col).to_numpy()
+            train_X = train_features_df.drop(meta_cols + [GeneralCFG.target_col]).to_numpy()
             train_y = train_features_df.select(GeneralCFG.target_col).to_numpy()
-            valid_X = valid_features_df.drop(meta_cols + GeneralCFG.target_col).to_numpy()
+            valid_X = valid_features_df.drop(meta_cols + [GeneralCFG.target_col]).to_numpy()
             valid_y = valid_features_df.select(GeneralCFG.target_col).to_numpy()
 
-            model = lgb.LGBMClassifier(
-                **LGBMStackingCFG.model_params
-            )
-            model.fit(
-                train_X, train_y,
-                eval_set=[(valid_X, valid_y)],
-                eval_metric=LGBMStackingCFG.eval_metric,
+            model = lgb.train(
+                params=LGBMStackingCFG.lgbm_params,
+                train_set=lgb.Dataset(train_X, train_y),
+                valid_sets=[lgb.Dataset(valid_X, valid_y)],
                 early_stopping_rounds=LGBMStackingCFG.early_stopping_rounds,
-                verbose=LGBMStackingCFG.verbose,
+                verbose_eval=LGBMStackingCFG.verbose,
             )
-            model.save_model(output_dir / f"{model_save_name}.txt")
+            model.save_model(str(output_dir / f"{model_save_name}.txt"))
 
         whole_metrics, metrics_by_folds, metrics_each_fold = evaluate(seed)
         log_all_metrics(whole_metrics, metrics_by_folds, metrics_each_fold)
@@ -137,4 +140,5 @@ def log_all_metrics(whole_metrics, metrics_by_folds, metrics_each_fold):
 if __name__ == "__main__":
     LGBMStackingCFG.output_dir = Path("/workspace", "output", "stacking", "lgbm_stacking_baseline")
     train(run_name="lgbm_stacking_baseline", seed_list=[42])
+
 
