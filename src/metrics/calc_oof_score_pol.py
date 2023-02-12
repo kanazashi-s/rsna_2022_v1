@@ -19,6 +19,7 @@ def calc(oof_df: pol.DataFrame, seed: int, is_sigmoid: bool, is_debug=False):
     * 全体の ROC AUC Score
     * 全体の PR AUC Score
     """
+    assert "prediction_id" in oof_df.columns
 
     if is_debug:
         train_df = load_processed_data_pol.debug_train(seed=seed)
