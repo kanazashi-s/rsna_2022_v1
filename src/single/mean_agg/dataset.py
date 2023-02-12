@@ -98,7 +98,7 @@ class TestDataset(Dataset):
             inputs = prepare_input(
                 Path(str(row["machine_id"]), str(row["patient_id"]), str(row["image_id"])).with_suffix(".png"),
                 self.transform,
-                is_inference=False
+                is_inference=self.is_inference
             )
         else:
             inputs = prepare_input(

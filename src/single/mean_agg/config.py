@@ -5,8 +5,8 @@ from cfg.general import GeneralCFG
 
 class MeanAggCFG:
     output_dir = Path("/workspace", "output", "single", "mean_agg")
-    upload_name = "mean-agg-baseline-20220208"
-    model_name = "efficientnet_b0"
+    upload_name = "mean-agg-swa-20230213"
+    model_name = "efficientnetv2_rw_s"
     drop_rate = 0.3
     drop_path_rate = 0.2
     lr = 1.5e-4

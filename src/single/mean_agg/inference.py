@@ -13,7 +13,7 @@ from metrics import calc_oof_score
 
 def inference(seed):
     pl.seed_everything(seed)
-    submission_df = load_processed_data.sample_submission(seed=seed)
+    submission_df = load_processed_data_pol.sample_submission(seed=seed)
     test_df = load_processed_data_pol.test(seed=seed).with_column(
         pol.lit(0).alias("prediction")
     )
@@ -33,7 +33,7 @@ def inference(seed):
 
         trainer = pl.Trainer(
             accelerator="gpu",
-            devices=[0],  # For the Kaggle environment
+            devices=[1],  # For the Kaggle environment
             # precision="bf16",  # For the Kaggle environment
         )
 
@@ -48,7 +48,7 @@ def inference(seed):
 
         # test_df の prediction に、 fold_preds を fold 数で割って足す
         test_df = test_df.with_column(
-            pol.lit(fold_preds).alias("prediction_i")
+            pol.lit(fold_preds.reshape(-1)).alias("prediction_i")
         ).select([
             pol.col("prediction_id"),
             (pol.col("prediction") + pol.col("prediction_i") / len(GeneralCFG.train_fold)).alias("prediction")
@@ -69,9 +69,7 @@ def inference(seed):
     )
 
     assert predictions_df.get_column("prediction_id").series_equal(submission_df.get_column("prediction_id"))
-    assert pol.all(predictions_df.select(
-        pol.col("cancer").is_not_null()
-    ))
+    assert np.all(predictions_df.select(pol.col("cancer").is_not_null()).to_numpy())
 
     return predictions_df
 
@@ -82,16 +80,20 @@ def calc_seed_mean(seeds=GeneralCFG.seeds):
         predictions = inference(seed)
         predictions_df_list.append(predictions)
 
-    predictions_seed_mean_df = predictions_df_list[0][["prediction_id"]].copy()
-    predictions_seed_mean_df["cancer"] = np.mean(
-        [predictions_df["cancer"].values for predictions_df in predictions_df_list],
-        axis=0
+    predictions_seed_mean_df = predictions_df_list[0].select(pol.col("prediction_id")).with_column(
+        pol.lit(np.mean(
+            [predictions_df.get_column("cancer").to_numpy() for predictions_df in predictions_df_list],
+            axis=0
+        )).alias("cancer")
+    ).with_column(
+        (pol.col("cancer") >= 0.5).cast(pol.Int32).alias("cancer")
     )
-    predictions_seed_mean_df["cancer"] = (predictions_seed_mean_df["cancer"] >= 0.5).astype(float)
+
     return predictions_seed_mean_df
 
 
 if __name__ == "__main__":
-    MeanAggCFG.uploaded_model_dir = Path("/workspace", "output", "single", "mean_agg", "baseline_512")
+    MeanAggCFG.uploaded_model_dir = Path("/workspace", "output", "single", "mean_agg", "1536_ker_swa")
+    GeneralCFG.num_workers = 0
     predictions_seed_mean_df = calc_seed_mean()
-    predictions_seed_mean_df.to_csv(MeanAggCFG.uploaded_model_dir / "submission.csv", index=False)
+    predictions_seed_mean_df.write_csv(MeanAggCFG.uploaded_model_dir / "submission.csv")

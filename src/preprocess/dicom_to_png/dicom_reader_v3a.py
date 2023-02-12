@@ -494,9 +494,9 @@ def process_j2k(df, dcm_dir, image_dir, image_height, is_voi_lut=True):
 
 if __name__ == "__main__":
     convert_height = 1536
-    csv_file = "/workspace/data/raw/train.csv"
-    dcm_dir = "/workspace/data/raw/train_images"
-    png_dir = "/workspace/data/png_converted/1536_ker_png"
+    csv_file = "/workspace/data/raw/test.csv"
+    dcm_dir = "/workspace/data/raw/test_images"
+    png_dir = "/workspace/data/png_converted/1536_ker_png_test"
     shutil.rmtree(png_dir, ignore_errors=True)
 
     train_df = pd.read_csv(csv_file)
