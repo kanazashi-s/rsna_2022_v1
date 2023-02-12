@@ -94,6 +94,6 @@ def calc_seed_mean(seeds=GeneralCFG.seeds):
 
 if __name__ == "__main__":
     MeanAggCFG.uploaded_model_dir = Path("/workspace", "output", "single", "mean_agg", "1536_ker_swa")
-    GeneralCFG.num_workers = 0
+    GeneralCFG.num_workers = 2
     predictions_seed_mean_df = calc_seed_mean()
     predictions_seed_mean_df.write_csv(MeanAggCFG.uploaded_model_dir / "submission.csv")
