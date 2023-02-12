@@ -500,7 +500,7 @@ def main():
 
     csv_file = GeneralCFG.raw_data_dir / "test.csv"
     dcm_dir = GeneralCFG.raw_data_dir / "test_images"
-    png_dir = GeneralCFG.png_converted_dir / f"1536_ker_png_test"
+    png_dir = GeneralCFG.png_data_dir / f"1536_ker_png_test"
 
     shutil.rmtree(png_dir, ignore_errors=True)
 
