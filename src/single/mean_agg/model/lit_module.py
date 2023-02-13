@@ -9,7 +9,7 @@ from single.mean_agg.model.train_net import TrainNetMixin
 from single.mean_agg.model.vaild_net import ValidNetMixin
 from single.mean_agg.model.predict_net import PredictNetMixin
 from single.mean_agg.model.test_net import TestNetMixin
-from single.mean_agg.next_vit import next_vit
+# from single.mean_agg.next_vit import next_vit
 from utils.model_utils.pl_mixin import InitWeightsMixin
 from utils.model_utils.focal_loss import SigmoidFocalLoss
 from metrics import get_scores
