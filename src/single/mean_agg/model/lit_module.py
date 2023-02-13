@@ -9,6 +9,7 @@ from single.mean_agg.model.train_net import TrainNetMixin
 from single.mean_agg.model.vaild_net import ValidNetMixin
 from single.mean_agg.model.predict_net import PredictNetMixin
 from single.mean_agg.model.test_net import TestNetMixin
+from single.mean_agg.next_vit import next_vit
 from utils.model_utils.pl_mixin import InitWeightsMixin
 from utils.model_utils.focal_loss import SigmoidFocalLoss
 from metrics import get_scores
@@ -26,19 +27,35 @@ class LitModel(
         super().__init__()
 
         # define pretrained model
-        model_config = {
-            "model_name": MeanAggCFG.model_name,
-            "num_classes": 0,  # to use feature extractor,
-            "in_chans": 1,
-            "drop_rate": MeanAggCFG.drop_rate,
-            "drop_path_rate": MeanAggCFG.drop_path_rate,
-        }
-        if GeneralCFG.is_kaggle:
-            self.backbone = timm.create_model(**model_config, pretrained=False)
+        self.is_next_vit = MeanAggCFG.model_name.startswith("nextvit")
+        if self.is_next_vit:
+            model_config = {
+                "model_name": MeanAggCFG.model_name,
+                "num_classes": 1000,
+                "drop": MeanAggCFG.drop_rate,
+                # "path_dropout": MeanAggCFG.drop_path_rate,
+                "pretrained": False,
+            }
+            self.backbone = timm.create_model(**model_config)
+            large_checkpoint = torch.load("pretrained_weights/nextvit_base_in1k6m_384.pth")
+            self.backbone.load_state_dict(large_checkpoint['model'])
+            self.backbone.stem[0].conv.in_channels = 1
+            self.backbone.stem[0].conv.weight.data = self.backbone.stem[0].conv.weight.data[:, 0:1, :, :]
+            self.backbone = nn.Sequential(*list(self.backbone.children())[:-1])
         else:
-            self.backbone = timm.create_model(**model_config, pretrained=True)
+            model_config = {
+                "model_name": MeanAggCFG.model_name,
+                "num_classes": 0,  # to use feature extractor,
+                "in_chans": 1,
+                "drop_rate": MeanAggCFG.drop_rate,
+                "drop_path_rate": MeanAggCFG.drop_path_rate,
+            }
+            if GeneralCFG.is_kaggle:
+                self.backbone = timm.create_model(**model_config, pretrained=False)
+            else:
+                self.backbone = timm.create_model(**model_config, pretrained=True)
 
-        self.fc = nn.Linear(self.backbone.num_features, 1)
+        self.fc = nn.Linear(1024 if self.is_next_vit else self.backbone.num_features, 1)
         self._init_weights(self.fc)
         self.loss = self._get_loss()
         self.learning_rate = MeanAggCFG.lr

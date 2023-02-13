@@ -7,7 +7,7 @@ class MeanAggCFG:
     output_dir = Path("/workspace", "output", "single", "mean_agg")
     upload_name = "mean-agg-swa-20230213"
     model_name = "efficientnetv2_rw_s"
-    drop_rate = 0.3
+    drop_rate = 0.2
     drop_path_rate = 0.2
     lr = 1.5e-4
     backbone_lr_ratio = 1.0
@@ -36,6 +36,7 @@ class MeanAggCFG:
     monitor_mode = "max"
     uploaded_model_dir = output_dir
     val_check_per_epoch = 2
+    use_tta = True
 
 
 if GeneralCFG.is_kaggle:

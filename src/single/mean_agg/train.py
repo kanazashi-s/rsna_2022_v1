@@ -184,39 +184,24 @@ if __name__ == "__main__":
     # MeanAggCFG.output_dir = Path("/workspace", "output", "single", "mean_agg", "baseline_512")
     # oof_pfbeta_seed_mean = train(f"mean_agg_baseline", seed_list=[42], device_idx=0)
 
-    # GeneralCFG.num_workers = 4
-    # MeanAggCFG.batch_size = 16
-    # MeanAggCFG.accumulate_grad_batches = 8
-    # MeanAggCFG.output_dir = Path("/workspace", "output", "single", "mean_agg", "roi_extracted_512")
-    # GeneralCFG.image_size = 512
-    # GeneralCFG.train_image_dir = GeneralCFG.png_data_dir / "roi_extracted_512"
-    # train(f"mean_agg_roi_extracted_512", seed_list=[42, 43, 44], device_idx=0)
-
-    # GeneralCFG.num_workers = 4
-    # MeanAggCFG.batch_size = 16
-    # MeanAggCFG.accumulate_grad_batches = 8
-    # MeanAggCFG.output_dir = Path("/workspace", "output", "single", "mean_agg", "affine_512")
-    # GeneralCFG.image_size = 512
-    # GeneralCFG.train_image_dir = GeneralCFG.png_data_dir / "theo_512"
-    # train(f"mean_agg_affine_512", seed_list=[42, 43, 44], device_idx=0)
-
     # GeneralCFG.num_workers = 2
-    # MeanAggCFG.batch_size = 8
-    # MeanAggCFG.accumulate_grad_batches = 8
-    # MeanAggCFG.output_dir = Path("/workspace", "output", "single", "mean_agg", "1536_ker_baseline")
+    # MeanAggCFG.batch_size = 12
+    # MeanAggCFG.accumulate_grad_batches = 4
+    # MeanAggCFG.output_dir = Path("/workspace", "output", "single", "mean_agg", "1536_ker_swa_smooth")
     # MeanAggCFG.epochs = 20
+    # MeanAggCFG.lr = 2e-4
     # GeneralCFG.image_size = 1024
     # GeneralCFG.train_image_dir = GeneralCFG.png_data_dir / "1536_ker_png"
     # MeanAggCFG.model_name = "efficientnetv2_rw_s"
-    # train(f"mean_agg_1536_ker_baseline_effnetv2s", seed_list=[42], device_idx=1)
+    # train(f"1536_ker_swa_smooth_effnetv2s", seed_list=[42], device_idx=0)
 
     GeneralCFG.num_workers = 2
-    MeanAggCFG.batch_size = 12
-    MeanAggCFG.accumulate_grad_batches = 4
+    MeanAggCFG.batch_size = 8
+    MeanAggCFG.accumulate_grad_batches = 8
     MeanAggCFG.output_dir = Path("/workspace", "output", "single", "mean_agg", "1536_ker_swa_smooth")
     MeanAggCFG.epochs = 20
-    MeanAggCFG.lr = 2e-4
     GeneralCFG.image_size = 1024
     GeneralCFG.train_image_dir = GeneralCFG.png_data_dir / "1536_ker_png"
     MeanAggCFG.model_name = "efficientnetv2_rw_s"
-    train(f"1536_ker_swa_smooth_effnetv2s", seed_list=[42], device_idx=0)
+    train(f"mean_agg_1536_ker_baseline_effnetv2s", seed_list=[42], device_idx=1)
+
