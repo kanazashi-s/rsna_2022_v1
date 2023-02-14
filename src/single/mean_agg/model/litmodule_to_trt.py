@@ -89,11 +89,10 @@ def litmodule_to_trt(model_dir: Path, seed: int):
             model_torch, inputs=inputs, enabled_precisions=enabled_precisions
         )
 
-        # ワーキングディレクトリにsave
         save_dir = Path.cwd() if GeneralCFG.is_kaggle else model_dir
         torch.jit.save(trt_ts_module, save_dir / f"trt_fold{fold}.ts")
 
 
 if __name__ == "__main__":
-    model_dir = Path("output/single/mean_agg/1536_ker_swa")
+    model_dir = Path("/kaggle/input/mean-agg-swa-20230213")
     litmodule_to_trt(model_dir, seed=42)
