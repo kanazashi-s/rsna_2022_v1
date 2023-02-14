@@ -23,7 +23,7 @@ def inference(seed):
 
     predictions_list = []
     for fold in GeneralCFG.train_fold:
-        input_dir = MeanAggCFG.uploaded_model_dir / f"seed{seed}"
+        input_dir = MeanAggCFG.trt_model_dir / f"seed{seed}"
         trt_ts_module = torch.jit.load(input_dir / f"trt_fold{fold}.ts")
 
         data_module = DataModule(
@@ -61,7 +61,7 @@ def inference(seed):
         pol.col("prediction_id"),
     ]).join(
         test_df.groupby("prediction_id").agg(
-            (pol.col("prediction").mean() >= 0.44).cast(pol.Int32).alias("cancer")
+            (pol.col("prediction").mean() >= 0.49).cast(pol.Int32).alias("cancer")
         ),
         on="prediction_id",
         how="left"
@@ -92,7 +92,7 @@ def calc_seed_mean(seeds=GeneralCFG.seeds):
 
 
 if __name__ == "__main__":
-    MeanAggCFG.uploaded_model_dir = Path("/workspace", "output", "single", "mean_agg", "1536_ker_swa")
+    MeanAggCFG.trt_model_dir = Path("/workspace", "output", "single", "mean_agg", "1536_ker_swa")
     GeneralCFG.num_workers = 0
     predictions_seed_mean_df = calc_seed_mean()
     predictions_seed_mean_df.write_csv(MeanAggCFG.uploaded_model_dir / "submission.csv")
