@@ -89,8 +89,9 @@ def litmodule_to_trt(model_dir: Path, seed: int):
             model_torch, inputs=inputs, enabled_precisions=enabled_precisions
         )
 
-        # save
-        torch.jit.save(trt_ts_module, model_dir / f"trt_fold{fold}.ts")
+        # ワーキングディレクトリにsave
+        save_dir = Path.cwd() if GeneralCFG.is_kaggle else model_dir
+        torch.jit.save(trt_ts_module, save_dir / f"trt_fold{fold}.ts")
 
 
 if __name__ == "__main__":

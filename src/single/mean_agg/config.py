@@ -5,7 +5,8 @@ from cfg.general import GeneralCFG
 
 class MeanAggCFG:
     output_dir = Path("/workspace", "output", "single", "mean_agg")
-    upload_name = "mean-agg-swa-20230213"
+    upload_name = "mean-agg-swa-20230213"  # trt変換用Notebookは、この名前 + -trt で作成する
+    trt_model_dir = output_dir
     model_name = "efficientnetv2_rw_s"
     drop_rate = 0.2
     drop_path_rate = 0.2
@@ -41,6 +42,7 @@ class MeanAggCFG:
 
 if GeneralCFG.is_kaggle:
     MeanAggCFG.uploaded_model_dir = Path("/kaggle", "input", MeanAggCFG.upload_name)
+    MeanAggCFG.trt_model_dir = Path("/kaggle", "input", MeanAggCFG.upload_name + "-trt")
     MeanAggCFG.batch_size = 4
 
 
