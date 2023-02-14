@@ -94,5 +94,12 @@ def litmodule_to_trt(model_dir: Path, seed: int):
 
 
 if __name__ == "__main__":
-    model_dir = Path("/kaggle/input/mean-agg-swa-20230213")
-    litmodule_to_trt(model_dir, seed=42)
+    if GeneralCFG.is_kaggle:
+        import sys
+        sys.path.append('/kaggle/input/timm-0-6-9/pytorch-image-models-master')
+
+        model_dir = Path("/kaggle/input/mean-agg-swa-20230213")
+        litmodule_to_trt(model_dir, seed=42)
+    else:
+        model_dir = Path("/workspace", "output", "single", "mean_agg", "1536_ker_swa")
+        litmodule_to_trt(model_dir, seed=42)
