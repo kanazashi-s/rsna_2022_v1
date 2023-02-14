@@ -1,10 +1,14 @@
+import sys
+from cfg.general import GeneralCFG
+if GeneralCFG.is_kaggle:
+    sys.path.append('/kaggle/input/timm-0-6-9/pytorch-image-models-master')
+
 from pathlib import Path
 import torch
 import torch.nn as nn
 import pytorch_lightning as pl
 import torch_tensorrt
 import timm
-from cfg.general import GeneralCFG
 from single.mean_agg.config import MeanAggCFG
 from utils.model_utils.focal_loss import SigmoidFocalLoss
 from metrics import get_scores
@@ -95,9 +99,6 @@ def litmodule_to_trt(model_dir: Path, seed: int):
 
 if __name__ == "__main__":
     if GeneralCFG.is_kaggle:
-        import sys
-        sys.path.append('/kaggle/input/timm-0-6-9/pytorch-image-models-master')
-
         model_dir = Path("/kaggle/input/mean-agg-swa-20230213")
         litmodule_to_trt(model_dir, seed=42)
     else:
