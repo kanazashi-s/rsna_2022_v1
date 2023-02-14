@@ -2,12 +2,15 @@ from pathlib import Path
 import numpy as np
 import polars as pol
 import torch
+import torch_tensorrt
 import pytorch_lightning as pl
+from tqdm import tqdm
 from cfg.general import GeneralCFG
 from single.mean_agg.config import MeanAggCFG
 from single.mean_agg.data_module import DataModule
 from data import load_processed_data_pol
 from single.mean_agg.model.lit_module import LitModel
+from single.mean_agg.model.litmodule_to_trt import MyModel
 from metrics import calc_oof_score
 
 
@@ -21,7 +24,7 @@ def inference(seed):
     predictions_list = []
     for fold in GeneralCFG.train_fold:
         input_dir = MeanAggCFG.uploaded_model_dir / f"seed{seed}"
-        model = LitModel()
+        trt_ts_module = torch.jit.load(input_dir / f"trt_fold{fold}.ts")
 
         data_module = DataModule(
             seed=seed,
@@ -31,18 +34,14 @@ def inference(seed):
         )
         data_module.setup()
 
-        trainer = pl.Trainer(
-            accelerator="gpu",
-            devices=[0],  # For the Kaggle environment
-            # precision="bf16",  # For the Kaggle environment
-        )
+        # torch のモデルを使って、 test_df の prediction を予測
+        fold_preds = []
+        for batch in tqdm(data_module.test_dataloader()):
+            with torch.no_grad():
+                image = batch
+                image = image.cuda().half()
+                fold_preds.append(trt_ts_module(image))
 
-        fold_preds = trainer.predict(
-            model,
-            dataloaders=data_module.test_dataloader(),
-            ckpt_path=f"{input_dir}/best_loss_fold{fold}.ckpt",
-            return_predictions=True
-        )
         fold_preds = (torch.concat(fold_preds, axis=0).cpu().detach().float().numpy())
         fold_preds = 1 / (1 + np.exp(-fold_preds))
 
@@ -94,6 +93,6 @@ def calc_seed_mean(seeds=GeneralCFG.seeds):
 
 if __name__ == "__main__":
     MeanAggCFG.uploaded_model_dir = Path("/workspace", "output", "single", "mean_agg", "1536_ker_swa")
-    GeneralCFG.num_workers = 2
+    GeneralCFG.num_workers = 0
     predictions_seed_mean_df = calc_seed_mean()
     predictions_seed_mean_df.write_csv(MeanAggCFG.uploaded_model_dir / "submission.csv")

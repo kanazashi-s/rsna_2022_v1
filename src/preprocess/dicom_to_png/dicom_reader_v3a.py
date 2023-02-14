@@ -1,5 +1,5 @@
 import os
-os.environ['CUDA_MODULE_LOADING']='LAZY'
+os.environ['CUDA_MODULE_LOADING'] = 'LAZY'
 
 import sys
 import shutil

@@ -10,6 +10,7 @@ from single.mean_agg.config import MeanAggCFG
 from single.mean_agg.data_module import DataModule
 from single.mean_agg.model.lit_module import LitModel
 from single.mean_agg.evaluate import evaluate
+from single.mean_agg.model.litmodule_to_trt import litmodule_to_trt
 from utils.upload_model import create_dataset_metadata
 
 
@@ -204,4 +205,5 @@ if __name__ == "__main__":
     GeneralCFG.train_image_dir = GeneralCFG.png_data_dir / "1536_ker_png"
     MeanAggCFG.model_name = "efficientnetv2_rw_s"
     train(f"mean_agg_1536_ker_baseline_effnetv2s", seed_list=[42], device_idx=1)
+    # litmodule_to_trt(MeanAggCFG.output_dir, seed=42)
 
