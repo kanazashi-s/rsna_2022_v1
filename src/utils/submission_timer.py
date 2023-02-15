@@ -7,7 +7,7 @@ api = KaggleApi()
 api.authenticate()
 
 COMPETITION = 'rsna-breast-cancer-detection'
-result_ = api.competition_submissions(COMPETITION)[1]
+result_ = api.competition_submissions(COMPETITION)[0]
 latest_ref = str(result_)  # 最新のサブミット番号
 submit_time = result_.date
 

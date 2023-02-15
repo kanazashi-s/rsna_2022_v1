@@ -62,6 +62,7 @@ def litmodule_to_trt(model_dir: Path, seed: int):
         )
 
         save_dir = Path.cwd() / f"seed{seed}" if is_kaggle else model_dir
+        save_dir.mkdir(exist_ok=True, parents=True)
         torch.jit.save(trt_ts_module, save_dir / f"trt_fold{fold}.ts")
 
 
