@@ -23,7 +23,7 @@ def inference(seed):
 
     predictions_list = []
     for fold in GeneralCFG.train_fold:
-        input_dir = MeanAggCFG.trt_model_dir  # / f"seed{seed}"
+        input_dir = MeanAggCFG.trt_model_dir / f"seed{seed}"
         trt_ts_module = torch.jit.load(input_dir / f"trt_fold{fold}.ts")
 
         data_module = DataModule(
