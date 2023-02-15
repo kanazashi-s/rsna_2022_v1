@@ -38,7 +38,7 @@ class MyModel(nn.Module):
 
 
 def litmodule_to_trt(model_dir: Path, seed: int):
-    model_dir = model_dir  # / f"seed{seed}"
+    model_dir = model_dir / f"seed{seed}"
     for fold in range(5):
         # lightning のモデルを、 checkpoint から読み込み、 torch のモデルに変換
         state_dict = torch.load(model_dir / f"best_loss_fold{fold}.ckpt")["state_dict"]
