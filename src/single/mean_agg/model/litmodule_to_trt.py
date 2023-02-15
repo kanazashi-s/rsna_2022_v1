@@ -67,7 +67,7 @@ def litmodule_to_trt(model_dir: Path, seed: int):
 
 if __name__ == "__main__":
     if is_kaggle:
-        model_dir = Path("/kaggle/input/mean-agg-swa-20230213")
+        model_dir = Path("/kaggle/input/mean-agg-swa-20230213-trt")
         litmodule_to_trt(model_dir, seed=42)
     else:
         model_dir = Path("/workspace", "output", "single", "mean_agg", "1536_ker_swa")
