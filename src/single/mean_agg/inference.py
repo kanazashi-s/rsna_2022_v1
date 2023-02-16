@@ -25,16 +25,16 @@ def inference(seed):
         (pol.col("patient_id").cast(pol.Utf8) + "_" + pol.col("image_id").cast(pol.Utf8) + ".png")
         .alias("image_filename")
     )
+    transforms_no_aug = get_transforms(augment=False)
+    test_dataset = TestDataset(test_df, transforms_no_aug, is_inference=True)
 
     for fold in GeneralCFG.train_fold:
         input_dir = MeanAggCFG.trt_model_dir / f"seed{seed}"
         trt_ts_module = torch.jit.load(input_dir / f"trt_fold{fold}.ts")
 
-        transforms_no_aug = get_transforms(augment=False)
-        test_dataset = TestDataset(test_df, transforms_no_aug, is_inference=True)
         test_dataloader = DataLoader(
             test_dataset,
-            batch_size=GeneralCFG.batch_size,
+            batch_size=MeanAggCFG.batch_size,
             shuffle=False,
             num_workers=GeneralCFG.num_workers
         )
@@ -48,7 +48,7 @@ def inference(seed):
                 fold_preds.append(trt_ts_module(image))
 
         fold_preds = (torch.concat(fold_preds, axis=0).cpu().detach().float().numpy())
-        fold_preds = 1 / (1 + torch.exp(-fold_preds))
+        fold_preds = 1 / (1 + np.exp(-fold_preds))
 
         # test_df の prediction に、 fold_preds を fold 数で割って足す
         test_df = test_df.with_column(
@@ -82,7 +82,7 @@ def calc_seed_mean(seeds=GeneralCFG.seeds, num_workers=None, batch_size=None):
     if num_workers is not None:
         GeneralCFG.num_workers = num_workers
     if batch_size is not None:
-        GeneralCFG.batch_size = batch_size
+        MeanAggCFG.batch_size = batch_size
 
     predictions_df_list = []
     for seed in seeds:
