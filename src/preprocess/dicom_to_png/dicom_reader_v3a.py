@@ -498,8 +498,8 @@ def process_j2k(df, dcm_dir, image_dir, image_height, is_voi_lut=True):
 def main():
     convert_height = 1536
 
-    csv_file = GeneralCFG.raw_data_dir / "test.csv"
-    dcm_dir = GeneralCFG.raw_data_dir / "test_images"
+    csv_file = GeneralCFG.raw_data_dir / "train.csv"
+    dcm_dir = GeneralCFG.raw_data_dir / "train_images"
     png_dir = GeneralCFG.test_image_dir
 
     shutil.rmtree(png_dir, ignore_errors=True)

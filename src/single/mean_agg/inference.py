@@ -53,12 +53,6 @@ def inference(seed):
             (pol.col("prediction") + pol.col("prediction_i") / len(GeneralCFG.train_fold)).alias("prediction")
         ])
 
-        # out-of-memory を回避
-        del trt_ts_module
-        del data_module
-        del fold_preds
-        torch.cuda.empty_cache()
-
         if GeneralCFG.debug and fold == 1:
             break
 
