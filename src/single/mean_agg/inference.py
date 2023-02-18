@@ -1,4 +1,6 @@
 import os
+os.environ['CUDA_MODULE_LOADING'] = 'LAZY'
+
 from pathlib import Path
 import numpy as np
 import polars as pol
@@ -17,8 +19,6 @@ from single.mean_agg.model.litmodule_to_trt import MyModel
 from metrics import calc_oof_score
 from memory_profiler import profile
 
-os.environ['CUDA_MODULE_LOADING'] = 'LAZY'
-
 
 @profile
 def inference(seed):
@@ -28,6 +28,7 @@ def inference(seed):
     if GeneralCFG.debug:
         test_df = load_processed_data_pol.train(seed=seed)[:1000]
         GeneralCFG.train_fold = [0, 1, 2, 3, 4]
+        GeneralCFG.num_workers = 2
     else:
         test_df = load_processed_data_pol.test(seed=seed)
 
@@ -50,7 +51,7 @@ def inference(seed):
             batch_size=MeanAggCFG.batch_size,
             shuffle=False,
             num_workers=GeneralCFG.num_workers,
-            pin_memory=True,
+            pin_memory=False,
         )
 
         # torch のモデルを使って、 test_df の prediction を予測
