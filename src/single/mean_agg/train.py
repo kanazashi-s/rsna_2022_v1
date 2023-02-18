@@ -196,7 +196,7 @@ if __name__ == "__main__":
     # MeanAggCFG.model_name = "efficientnetv2_rw_s"
     # train(f"1536_ker_swa_smooth_effnetv2s", seed_list=[42], device_idx=0)
 
-    GeneralCFG.num_workers = 2
+    GeneralCFG.num_workers = 0
     MeanAggCFG.batch_size = 8
     MeanAggCFG.accumulate_grad_batches = 8
     MeanAggCFG.output_dir = Path("/workspace", "output", "single", "mean_agg", "1536_ker_swa_smooth")

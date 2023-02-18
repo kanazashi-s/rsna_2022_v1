@@ -1,11 +1,12 @@
+import os
 from pathlib import Path
 import numpy as np
 import polars as pol
 import torch
 from torch.utils.data import DataLoader
+from torch.cuda import amp
 import torch_tensorrt
 import pytorch_lightning as pl
-from tqdm import tqdm
 from cfg.general import GeneralCFG
 from single.mean_agg.config import MeanAggCFG
 from data import load_processed_data_pol
@@ -14,17 +15,29 @@ from single.mean_agg.transforms import get_transforms
 from single.mean_agg.model.lit_module import LitModel
 from single.mean_agg.model.litmodule_to_trt import MyModel
 from metrics import calc_oof_score
+from memory_profiler import profile
+
+os.environ['CUDA_MODULE_LOADING'] = 'LAZY'
 
 
+@profile
 def inference(seed):
     pl.seed_everything(seed)
     submission_df = load_processed_data_pol.sample_submission(seed=seed)
-    test_df = load_processed_data_pol.test(seed=seed).with_column(
+
+    if GeneralCFG.debug:
+        test_df = load_processed_data_pol.train(seed=seed)[:1000]
+        GeneralCFG.train_fold = [0, 1, 2, 3, 4]
+    else:
+        test_df = load_processed_data_pol.test(seed=seed)
+
+    test_df = test_df.with_column(
         pol.lit(0).alias("prediction")
     ).with_column(
         (pol.col("patient_id").cast(pol.Utf8) + "_" + pol.col("image_id").cast(pol.Utf8) + ".png")
         .alias("image_filename")
     )
+
     transforms_no_aug = get_transforms(augment=False)
     test_dataset = TestDataset(test_df, transforms_no_aug, is_inference=True)
 
@@ -36,16 +49,17 @@ def inference(seed):
             test_dataset,
             batch_size=MeanAggCFG.batch_size,
             shuffle=False,
-            num_workers=GeneralCFG.num_workers
+            num_workers=GeneralCFG.num_workers,
+            pin_memory=True,
         )
 
         # torch のモデルを使って、 test_df の prediction を予測
         fold_preds = []
         for batch in test_dataloader:
+            batch = batch.cuda().half()
             with torch.no_grad():
-                image = batch
-                image = image.cuda().half()
-                fold_preds.append(trt_ts_module(image))
+                with amp.autocast(enabled=True):
+                    fold_preds.append(trt_ts_module(batch))
 
         fold_preds = (torch.concat(fold_preds, axis=0).cpu().detach().float().numpy())
         fold_preds = 1 / (1 + np.exp(-fold_preds))
@@ -72,8 +86,9 @@ def inference(seed):
         how="left"
     )
 
-    assert predictions_df.get_column("prediction_id").series_equal(submission_df.get_column("prediction_id"))
-    assert np.all(predictions_df.select(pol.col("cancer").is_not_null()).to_numpy())
+    if not GeneralCFG.debug:
+        assert predictions_df.get_column("prediction_id").series_equal(submission_df.get_column("prediction_id"))
+        assert np.all(predictions_df.select(pol.col("cancer").is_not_null()).to_numpy())
 
     return predictions_df
 
