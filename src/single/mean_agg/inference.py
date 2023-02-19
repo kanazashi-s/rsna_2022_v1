@@ -51,7 +51,7 @@ def inference(seed):
             batch_size=MeanAggCFG.batch_size,
             shuffle=False,
             num_workers=GeneralCFG.num_workers,
-            pin_memory=False,
+            pin_memory=True,
         )
 
         # torch のモデルを使って、 test_df の prediction を予測
@@ -60,7 +60,17 @@ def inference(seed):
             batch = batch.cuda().half()
             with torch.no_grad():
                 with amp.autocast(enabled=True):
-                    fold_preds.append(trt_ts_module(batch))
+                    if MeanAggCFG.use_tta:
+                        pred1 = trt_ts_module(batch)
+                        pred2 = trt_ts_module(batch.flip(dims=[3]))
+                        # 2つの予測値を、それぞれシグモイド関数にかけ、平均を取る
+                        pred = (1 / (1 + torch.exp(-pred1))) + (1 / (1 + torch.exp(-pred2)))
+                        pred = pred / 2
+                        # シグモイド関数の逆変換
+                        pred = torch.log(pred / (1 - pred))
+                        fold_preds.append(pred)
+                    else:
+                        fold_preds.append(trt_ts_module(batch))
 
         fold_preds = (torch.concat(fold_preds, axis=0).cpu().detach().float().numpy())
         fold_preds = 1 / (1 + np.exp(-fold_preds))
