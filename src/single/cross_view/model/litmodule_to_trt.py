@@ -68,8 +68,8 @@ def litmodule_to_trt(model_dir: Path, seed: int):
 
 if __name__ == "__main__":
     if is_kaggle:
-        model_dir = Path("/kaggle/input/mean-agg-ker-optim-swa-20220213")
+        model_dir = Path("/kaggle/input/cross-view-ker-optim-swa-20220213")
         litmodule_to_trt(model_dir, seed=42)
     else:
-        model_dir = Path("/workspace", "output", "single", "mean_agg", "1536_ker_swa")
+        model_dir = Path("/workspace", "output", "single", "cross_view", "1536_ker_swa")
         litmodule_to_trt(model_dir, seed=42)

@@ -5,7 +5,7 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 from torchvision.io import read_image, ImageReadMode
 from cfg.general import GeneralCFG
-from single.mean_agg.config import MeanAggCFG
+from single.cross_view.config import CrossViewCFG
 
 
 def prepare_input(input_img_name, transform, is_inference=False):

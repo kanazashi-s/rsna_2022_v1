@@ -7,9 +7,9 @@ import pytorch_lightning as pl
 from torchsampler import ImbalancedDatasetSampler
 from utils.model_utils.torch_samplers import OnePositiveSampler, StratifiedOnePositiveSampler, StratifiedSampler
 from data import load_processed_data_pol
-from single.mean_agg.config import MeanAggCFG
-from single.mean_agg.dataset import TrainDataset, TestDataset
-from single.mean_agg.transforms import get_transforms
+from single.cross_view.config import CrossViewCFG
+from single.cross_view.dataset import TrainDataset, TestDataset
+from single.cross_view.transforms import get_transforms
 from cfg.general import GeneralCFG
 
 
@@ -54,16 +54,16 @@ class DataModule(pl.LightningDataModule):
         )
 
     def train_dataloader(self):
-        if MeanAggCFG.sampler == "ImbalancedDatasetSampler":
+        if CrossViewCFG.sampler == "ImbalancedDatasetSampler":
             sampler_dict = {
                 "sampler": ImbalancedDatasetSampler(
                     self.train_dataset,
-                    num_samples=MeanAggCFG.num_samples_per_epoch,
+                    num_samples=CrossViewCFG.num_samples_per_epoch,
                 ),
                 "shuffle": False,
                 "batch_size": self.batch_size
             }
-        elif MeanAggCFG.sampler == "OnePositiveSampler":
+        elif CrossViewCFG.sampler == "OnePositiveSampler":
             sampler_dict = {
                 "batch_sampler": OnePositiveSampler(
                     indices=np.arange(len(self.train_dataset)),
@@ -72,7 +72,7 @@ class DataModule(pl.LightningDataModule):
                 ),
                 # "shuffle": False
             }
-        elif MeanAggCFG.sampler == "StratifiedOnePositiveSampler":
+        elif CrossViewCFG.sampler == "StratifiedOnePositiveSampler":
             sampler_dict = {
                 "batch_sampler": StratifiedOnePositiveSampler(
                     indices=np.arange(len(self.train_dataset)),
@@ -82,7 +82,7 @@ class DataModule(pl.LightningDataModule):
                 ),
                 # "shuffle": False
             }
-        elif MeanAggCFG.sampler is None:
+        elif CrossViewCFG.sampler is None:
             sampler_dict = {
                 "shuffle": True,
                 "batch_size": self.batch_size
@@ -97,7 +97,7 @@ class DataModule(pl.LightningDataModule):
         )
 
     def val_dataloader(self):
-        if MeanAggCFG.sampler == "StratifiedOnePositiveSampler":
+        if CrossViewCFG.sampler == "StratifiedOnePositiveSampler":
             sampler_dict = {
                 "batch_sampler": StratifiedSampler(
                     indices=np.arange(len(self.valid_dataset)),

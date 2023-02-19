@@ -3,9 +3,9 @@ from pathlib import Path
 from cfg.general import GeneralCFG
 
 
-class MeanAggCFG:
-    output_dir = Path("/workspace", "output", "single", "mean_agg")
-    upload_name = "mean-agg-ker-optim-swa-20220213"  # trt変換用Notebookは、この名前 + -trt で作成する
+class CrossViewCFG:
+    output_dir = Path("/workspace", "output", "single", "cross_view")
+    upload_name = "cross-view-ker-optim-swa-20220213"  # trt変換用Notebookは、この名前 + -trt で作成する
     trt_model_dir = output_dir
     model_name = "efficientnetv2_rw_s"
     drop_rate = 0.2
@@ -41,11 +41,11 @@ class MeanAggCFG:
 
 
 if GeneralCFG.is_kaggle:
-    MeanAggCFG.uploaded_model_dir = Path("/kaggle", "input", MeanAggCFG.upload_name)
-    MeanAggCFG.trt_model_dir = Path("/kaggle", "input", MeanAggCFG.upload_name + "-trt")
-    MeanAggCFG.batch_size = 4
+    CrossViewCFG.uploaded_model_dir = Path("/kaggle", "input", CrossViewCFG.upload_name)
+    CrossViewCFG.trt_model_dir = Path("/kaggle", "input", CrossViewCFG.upload_name + "-trt")
+    CrossViewCFG.batch_size = 4
 
 
 if GeneralCFG.debug:
-    MeanAggCFG.epochs = 2
-    MeanAggCFG.output_dir = Path("/workspace", "output", "single", "debug_mean_agg")
+    CrossViewCFG.epochs = 2
+    CrossViewCFG.output_dir = Path("/workspace", "output", "single", "debug_cross_view")

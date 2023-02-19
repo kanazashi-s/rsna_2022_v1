@@ -6,11 +6,11 @@ import numpy as np
 import torch
 import pytorch_lightning as pl
 from cfg.general import GeneralCFG
-from single.mean_agg.config import MeanAggCFG
-from single.mean_agg.data_module import DataModule
-from single.mean_agg.model.lit_module import LitModel
-from single.mean_agg.evaluate import evaluate
-from single.mean_agg.model.litmodule_to_trt import litmodule_to_trt
+from single.cross_view.config import CrossViewCFG
+from single.cross_view.data_module import DataModule
+from single.cross_view.model.lit_module import LitModel
+from single.cross_view.evaluate import evaluate
+from single.cross_view.model.litmodule_to_trt import litmodule_to_trt
 from utils.upload_model import create_dataset_metadata
 
 
@@ -22,8 +22,8 @@ def train(run_name: str, seed_list=None, device_idx=0):
 
     for seed in seed_list:
         if GeneralCFG.debug:
-            MeanAggCFG.output_dir = MeanAggCFG.output_dir.with_name(f"{MeanAggCFG.output_dir.name}_debug")
-        output_dir = MeanAggCFG.output_dir / f"seed{seed}"
+            CrossViewCFG.output_dir = CrossViewCFG.output_dir.with_name(f"{CrossViewCFG.output_dir.name}_debug")
+        output_dir = CrossViewCFG.output_dir / f"seed{seed}"
         shutil.rmtree(output_dir, ignore_errors=True)
         output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -35,7 +35,7 @@ def train(run_name: str, seed_list=None, device_idx=0):
             data_module = DataModule(
                 seed=seed,
                 fold=fold,
-                batch_size=MeanAggCFG.batch_size,
+                batch_size=CrossViewCFG.batch_size,
                 num_workers=GeneralCFG.num_workers,
             )
             data_module.setup()
@@ -45,19 +45,19 @@ def train(run_name: str, seed_list=None, device_idx=0):
             # mlflow logger
             experiment_name_prefix = "debug_" if GeneralCFG.debug else ""
             mlflow_logger = pl.loggers.MLFlowLogger(
-                experiment_name=experiment_name_prefix + f"mean_agg_{MeanAggCFG.model_name}",
+                experiment_name=experiment_name_prefix + f"cross_view_{CrossViewCFG.model_name}",
                 run_name=f"{run_name}_seed_{seed}_fold{fold}",
             )
             mlflow_logger.log_hyperparams(get_param_dict())
 
-            val_check_interval = len(data_module.train_dataloader()) // MeanAggCFG.val_check_per_epoch
+            val_check_interval = len(data_module.train_dataloader()) // CrossViewCFG.val_check_per_epoch
 
             loss_callback = pl.callbacks.ModelCheckpoint(
-                monitor=MeanAggCFG.monitor_metric,
+                monitor=CrossViewCFG.monitor_metric,
                 dirpath=output_dir,
                 filename=model_save_name,
                 save_top_k=1,
-                mode=MeanAggCFG.monitor_mode,
+                mode=CrossViewCFG.monitor_mode,
                 verbose=True,
             )
             lr_monitor = pl.callbacks.LearningRateMonitor(logging_interval="step")
@@ -73,11 +73,11 @@ def train(run_name: str, seed_list=None, device_idx=0):
                 devices=[device_idx],
                 accelerator="gpu",
                 # strategy="ddp",
-                max_epochs=MeanAggCFG.epochs,
+                max_epochs=CrossViewCFG.epochs,
                 precision="bf16",
                 amp_backend='native',
-                gradient_clip_val=MeanAggCFG.max_grad_norm,
-                accumulate_grad_batches=MeanAggCFG.accumulate_grad_batches,
+                gradient_clip_val=CrossViewCFG.max_grad_norm,
+                accumulate_grad_batches=CrossViewCFG.accumulate_grad_batches,
                 logger=mlflow_logger,
                 default_root_dir=output_dir,
                 callbacks=callbacks,
@@ -91,7 +91,7 @@ def train(run_name: str, seed_list=None, device_idx=0):
         log_all_metrics(mlflow_logger, whole_metrics, metrics_by_folds, metrics_each_fold)
 
         create_dataset_metadata(
-            model_name=f"{MeanAggCFG.upload_name}-seed{seed}",
+            model_name=f"{CrossViewCFG.upload_name}-seed{seed}",
             model_path=output_dir,
         )
 
@@ -109,8 +109,8 @@ def train(run_name: str, seed_list=None, device_idx=0):
     mlflow_logger.log_metrics(metrics_seed_mean_dict)
 
     create_dataset_metadata(
-        model_name=MeanAggCFG.upload_name,
-        model_path=MeanAggCFG.output_dir,
+        model_name=CrossViewCFG.upload_name,
+        model_path=CrossViewCFG.output_dir,
     )
 
     return metrics_seed_mean_dict
@@ -123,18 +123,18 @@ def get_param_dict():
         "num_workers": GeneralCFG.num_workers,
         "n_fold": GeneralCFG.n_fold,
         "num_use_data": GeneralCFG.num_use_data,
-        "model_name": MeanAggCFG.model_name,
-        "lr": MeanAggCFG.lr,
-        "batch_size": MeanAggCFG.batch_size,
-        "epochs": MeanAggCFG.epochs,
-        "max_grad_norm": MeanAggCFG.max_grad_norm,
-        "accumulate_grad_batches": MeanAggCFG.accumulate_grad_batches,
-        "loss_function": MeanAggCFG.loss_function,
-        "pos_weight": MeanAggCFG.pos_weight,
-        "focal_loss_alpha": MeanAggCFG.focal_loss_alpha,
-        "focal_loss_gamma": MeanAggCFG.focal_loss_gamma,
-        "monitor_metric": MeanAggCFG.monitor_metric,
-        "monitor_mode": MeanAggCFG.monitor_mode,
+        "model_name": CrossViewCFG.model_name,
+        "lr": CrossViewCFG.lr,
+        "batch_size": CrossViewCFG.batch_size,
+        "epochs": CrossViewCFG.epochs,
+        "max_grad_norm": CrossViewCFG.max_grad_norm,
+        "accumulate_grad_batches": CrossViewCFG.accumulate_grad_batches,
+        "loss_function": CrossViewCFG.loss_function,
+        "pos_weight": CrossViewCFG.pos_weight,
+        "focal_loss_alpha": CrossViewCFG.focal_loss_alpha,
+        "focal_loss_gamma": CrossViewCFG.focal_loss_gamma,
+        "monitor_metric": CrossViewCFG.monitor_metric,
+        "monitor_mode": CrossViewCFG.monitor_mode,
     }
     return param_dict
 
@@ -182,28 +182,28 @@ def log_all_metrics(mlflow_logger, whole_metrics, metrics_by_folds, metrics_each
 
 
 if __name__ == "__main__":
-    # MeanAggCFG.output_dir = Path("/workspace", "output", "single", "mean_agg", "baseline_512")
-    # oof_pfbeta_seed_mean = train(f"mean_agg_baseline", seed_list=[42], device_idx=0)
+    # CrossViewCFG.output_dir = Path("/workspace", "output", "single", "cross_view", "baseline_512")
+    # oof_pfbeta_seed_mean = train(f"cross_view_baseline", seed_list=[42], device_idx=0)
 
     # GeneralCFG.num_workers = 2
-    # MeanAggCFG.batch_size = 12
-    # MeanAggCFG.accumulate_grad_batches = 4
-    # MeanAggCFG.output_dir = Path("/workspace", "output", "single", "mean_agg", "1536_ker_swa_smooth")
-    # MeanAggCFG.epochs = 20
-    # MeanAggCFG.lr = 2e-4
+    # CrossViewCFG.batch_size = 12
+    # CrossViewCFG.accumulate_grad_batches = 4
+    # CrossViewCFG.output_dir = Path("/workspace", "output", "single", "cross_view", "1536_ker_swa_smooth")
+    # CrossViewCFG.epochs = 20
+    # CrossViewCFG.lr = 2e-4
     # GeneralCFG.image_size = 1024
     # GeneralCFG.train_image_dir = GeneralCFG.png_data_dir / "1536_ker_png"
-    # MeanAggCFG.model_name = "efficientnetv2_rw_s"
+    # CrossViewCFG.model_name = "efficientnetv2_rw_s"
     # train(f"1536_ker_swa_smooth_effnetv2s", seed_list=[42], device_idx=0)
 
     GeneralCFG.num_workers = 0
-    MeanAggCFG.batch_size = 8
-    MeanAggCFG.accumulate_grad_batches = 8
-    MeanAggCFG.output_dir = Path("/workspace", "output", "single", "mean_agg", "1536_ker_swa_smooth")
-    MeanAggCFG.epochs = 20
+    CrossViewCFG.batch_size = 8
+    CrossViewCFG.accumulate_grad_batches = 8
+    CrossViewCFG.output_dir = Path("/workspace", "output", "single", "cross_view", "1536_ker_swa_smooth")
+    CrossViewCFG.epochs = 20
     GeneralCFG.image_size = 1024
     GeneralCFG.train_image_dir = GeneralCFG.png_data_dir / "1536_ker_png"
-    MeanAggCFG.model_name = "efficientnetv2_rw_s"
-    train(f"mean_agg_1536_ker_baseline_effnetv2s", seed_list=[42], device_idx=1)
-    # litmodule_to_trt(MeanAggCFG.output_dir, seed=42)
+    CrossViewCFG.model_name = "efficientnetv2_rw_s"
+    train(f"cross_view_1536_ker_baseline_effnetv2s", seed_list=[42], device_idx=1)
+    # litmodule_to_trt(CrossViewCFG.output_dir, seed=42)
 

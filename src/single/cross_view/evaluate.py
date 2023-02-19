@@ -5,10 +5,10 @@ import torch
 import pytorch_lightning as pl
 import ttach as tta
 from cfg.general import GeneralCFG
-from single.mean_agg.config import MeanAggCFG
-from single.mean_agg.data_module import DataModule
+from single.cross_view.config import CrossViewCFG
+from single.cross_view.data_module import DataModule
 from data import load_processed_data_pol
-from single.mean_agg.model.lit_module import LitModel
+from single.cross_view.model.lit_module import LitModel
 from metrics import calc_oof_score_pol
 
 
@@ -33,12 +33,12 @@ def evaluate(seed, device_idx=0):
     )
 
     for fold in GeneralCFG.train_fold:
-        input_dir = MeanAggCFG.output_dir / f"seed{seed}"
+        input_dir = CrossViewCFG.output_dir / f"seed{seed}"
         model = LitModel()
         data_module = DataModule(
             seed=seed,
             fold=fold,
-            batch_size=MeanAggCFG.batch_size,
+            batch_size=CrossViewCFG.batch_size,
             num_workers=GeneralCFG.num_workers,
         )
         data_module.setup()
@@ -74,7 +74,7 @@ def evaluate(seed, device_idx=0):
             pol.col("cancer")
         ])
 
-    train_df.write_csv(MeanAggCFG.output_dir / "oof_before_agg.csv")
+    train_df.write_csv(CrossViewCFG.output_dir / "oof_before_agg.csv")
 
     oof_df = oof_df.filter(
         pol.col("fold").is_in(GeneralCFG.train_fold)
@@ -90,21 +90,21 @@ def evaluate(seed, device_idx=0):
         how="left"
     )
 
-    oof_df.write_csv(MeanAggCFG.output_dir / "oof.csv")
+    oof_df.write_csv(CrossViewCFG.output_dir / "oof.csv")
     whole_metrics, metrics_by_folds, metrics_each_fold = calc_oof_score_pol.calc(oof_df, is_debug=debug, seed=seed, is_sigmoid=True)
     return whole_metrics, metrics_by_folds, metrics_each_fold
 
 
 if __name__ == "__main__":
-    MeanAggCFG.output_dir = Path("/workspace", "output", "single", "mean_agg", "1536_ker_swa_smooth")
+    CrossViewCFG.output_dir = Path("/workspace", "output", "single", "cross_view", "1536_ker_swa_smooth")
     # GeneralCFG.image_size = 1536
     # GeneralCFG.train_image_dir = GeneralCFG.png_data_dir / "1536_ker_png"
     # GeneralCFG.num_workers = 2
-    # MeanAggCFG.model_name = "efficientnetv2_rw_s"
+    # CrossViewCFG.model_name = "efficientnetv2_rw_s"
     # whole_metrics, metrics_by_folds, metrics_each_fold = evaluate(seed=42, device_idx=1)
     # print(whole_metrics)
 
-    oof_df = pol.read_csv(MeanAggCFG.output_dir / "oof.csv")
+    oof_df = pol.read_csv(CrossViewCFG.output_dir / "oof.csv")
     whole_metrics, metrics_by_folds, metrics_each_fold = calc_oof_score_pol.calc(oof_df, is_debug=False, seed=42, is_sigmoid=True)
     print(whole_metrics)
 

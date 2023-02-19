@@ -10,12 +10,12 @@ from torch.cuda import amp
 import torch_tensorrt
 import pytorch_lightning as pl
 from cfg.general import GeneralCFG
-from single.mean_agg.config import MeanAggCFG
+from single.cross_view.config import CrossViewCFG
 from data import load_processed_data_pol
-from single.mean_agg.dataset import TestDataset
-from single.mean_agg.transforms import get_transforms
-from single.mean_agg.model.lit_module import LitModel
-from single.mean_agg.model.litmodule_to_trt import MyModel
+from single.cross_view.dataset import TestDataset
+from single.cross_view.transforms import get_transforms
+from single.cross_view.model.lit_module import LitModel
+from single.cross_view.model.litmodule_to_trt import MyModel
 from metrics import calc_oof_score
 from memory_profiler import profile
 
@@ -43,12 +43,12 @@ def inference(seed):
     test_dataset = TestDataset(test_df, transforms_no_aug, is_inference=True)
 
     for fold in GeneralCFG.train_fold:
-        input_dir = MeanAggCFG.trt_model_dir / f"seed{seed}"
+        input_dir = CrossViewCFG.trt_model_dir / f"seed{seed}"
         trt_ts_module = torch.jit.load(input_dir / f"trt_fold{fold}.ts")
 
         test_dataloader = DataLoader(
             test_dataset,
-            batch_size=MeanAggCFG.batch_size,
+            batch_size=CrossViewCFG.batch_size,
             shuffle=False,
             num_workers=GeneralCFG.num_workers,
             pin_memory=True,
@@ -60,7 +60,7 @@ def inference(seed):
             batch = batch.cuda().half()
             with torch.no_grad():
                 with amp.autocast(enabled=True):
-                    if MeanAggCFG.use_tta:
+                    if CrossViewCFG.use_tta:
                         pred1 = trt_ts_module(batch)
                         pred2 = trt_ts_module(batch.flip(dims=[3]))
                         # 2つの予測値を、それぞれシグモイド関数にかけ、平均を取る
@@ -108,7 +108,7 @@ def calc_seed_mean(seeds=GeneralCFG.seeds, num_workers=None, batch_size=None):
     if num_workers is not None:
         GeneralCFG.num_workers = num_workers
     if batch_size is not None:
-        MeanAggCFG.batch_size = batch_size
+        CrossViewCFG.batch_size = batch_size
 
     predictions_df_list = []
     for seed in seeds:
@@ -128,7 +128,7 @@ def calc_seed_mean(seeds=GeneralCFG.seeds, num_workers=None, batch_size=None):
 
 
 if __name__ == "__main__":
-    MeanAggCFG.trt_model_dir = Path("/workspace", "output", "single", "mean_agg", "1536_ker_swa")
+    CrossViewCFG.trt_model_dir = Path("/workspace", "output", "single", "cross_view", "1536_ker_swa")
     GeneralCFG.num_workers = 0
     predictions_seed_mean_df = calc_seed_mean()
-    predictions_seed_mean_df.write_csv(MeanAggCFG.uploaded_model_dir / "submission.csv")
+    predictions_seed_mean_df.write_csv(CrossViewCFG.uploaded_model_dir / "submission.csv")

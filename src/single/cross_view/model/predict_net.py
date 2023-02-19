@@ -1,6 +1,6 @@
 import torch
 import pytorch_lightning as pl
-from single.mean_agg.config import MeanAggCFG
+from single.cross_view.config import CrossViewCFG
 
 
 class PredictNetMixin(pl.LightningModule):
@@ -8,7 +8,7 @@ class PredictNetMixin(pl.LightningModule):
         inputs = batch
         outputs = self.forward(inputs)
 
-        if MeanAggCFG.use_tta:
+        if CrossViewCFG.use_tta:
             # 画像を左右反転して、再度予測を実施
             inputs_flip = inputs.flip(dims=[3])
             outputs_flip = self.forward(inputs_flip)

@@ -1,7 +1,7 @@
 import torch
 import pytorch_lightning as pl
 from transformers import get_cosine_schedule_with_warmup
-from single.mean_agg.config import MeanAggCFG
+from single.cross_view.config import CrossViewCFG
 
 
 class OptimizersMixin(pl.LightningModule):
@@ -10,7 +10,7 @@ class OptimizersMixin(pl.LightningModule):
 
         optimizer = torch.optim.AdamW(
             optimizer_parameters,
-            lr=MeanAggCFG.lr,
+            lr=CrossViewCFG.lr,
         )
 
         scheduler = self.get_scheduler(optimizer)
@@ -31,18 +31,18 @@ class OptimizersMixin(pl.LightningModule):
         optimizer_parameters = [
             {
                 'params': [p for n, p in backbone_params if not any(nd in n for nd in no_decay)],
-                'weight_decay': MeanAggCFG.weight_decay,
-                'lr': self.learning_rate * MeanAggCFG.backbone_lr_ratio
+                'weight_decay': CrossViewCFG.weight_decay,
+                'lr': self.learning_rate * CrossViewCFG.backbone_lr_ratio
             },
             {
                 'params': [p for n, p in backbone_params if any(nd in n for nd in no_decay)],
                 'weight_decay': 0.0,
-                'lr': self.learning_rate * MeanAggCFG.backbone_lr_ratio
+                'lr': self.learning_rate * CrossViewCFG.backbone_lr_ratio
             },
             {
                 'params': self.fc.parameters(),
                 'weight_decay': 0.0,
-                'lr': self.learning_rate * MeanAggCFG.fc_lr_ratio
+                'lr': self.learning_rate * CrossViewCFG.fc_lr_ratio
             }
         ]
 
