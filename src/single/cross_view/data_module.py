@@ -30,7 +30,6 @@ class DataModule(pl.LightningDataModule):
             assert whole_df.get_column("PatientID").series_equal(whole_df.get_column("patient_id").alias("PatientID"))
             assert whole_df.get_column("laterality").series_equal(whole_df.get_column("ImageLaterality").alias("laterality"))
 
-        # polars version
         whole_df = whole_df.with_column(
             (pol.col("patient_id").cast(pol.Utf8) + "_" + pol.col("image_id").cast(pol.Utf8) + ".png").alias("image_filename")
         )
@@ -141,3 +140,4 @@ if __name__ == "__main__":
         print(inputs)
         print(labels)
         break
+

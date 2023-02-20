@@ -8,7 +8,7 @@ from cfg.general import GeneralCFG
 from single.cross_view.config import CrossViewCFG
 
 
-def prepare_input(input_img_name, transform, is_inference=False):
+def name_to_image(input_img_name, transform, is_inference=False):
     if is_inference:
         img_dir = GeneralCFG.test_image_dir
     else:
@@ -19,34 +19,6 @@ def prepare_input(input_img_name, transform, is_inference=False):
     return image
 
 
-def modify_labels(label: int, row: pd.Series) -> float:
-    """
-    Modify labels to be more smooth
-    """
-    if label == 1:
-        ret_val = 1
-        if row["invasive"] == 1:
-            ret_val -= 0.02
-        else:
-            ret_val -= 0.05
-        return ret_val
-    else:
-        ret_val = 0
-        if row["BIRADS"] in [1, 2]:
-            # 良性もしくは異常所見なしと、マンモグラムで判断できるとのことなので、ほぼ0
-            ret_val += 0.02
-            return ret_val
-        else:
-            ret_val += 0.05
-            if row["difficult_negative_case"] == 1:
-                ret_val += 0.02
-            if row["biopsy"] == 1:
-                ret_val += 0.03
-            if row["density"] == "D":
-                ret_val += 0.03
-            return ret_val
-
-
 class TrainDataset(Dataset):
     def __init__(self, input_df, transform, is_validation=False):
         super().__init__()
@@ -54,32 +26,39 @@ class TrainDataset(Dataset):
         self.transform = transform
         self.is_validation = is_validation
 
+        if GeneralCFG.train_image_dir.stem in ["lossless", "1536_ker_png"]:
+            self.input_df["image_filename"] = self.input_df["machine_id"].astype(str) + "/" \
+                                              + self.input_df["patient_id"].astype(str) + "/" \
+                                              + self.input_df["image_id"].astype(str) + ".png"
+
     def __len__(self):
         return len(self.input_df)
 
-    def __getitem__(self, idx):
-        row = self.input_df.iloc[idx]
-        if GeneralCFG.train_image_dir.stem in ["lossless", "1536_ker_png"]:
-            inputs = prepare_input(
-                Path(str(row["machine_id"]), str(row["patient_id"]), str(row["image_id"])).with_suffix(".png"),
-                self.transform,
-                is_inference=False
-            )
-        else:
-            inputs = prepare_input(
-                row["image_filename"],
-                self.transform,
-                is_inference=False
-            )
-        label = torch.tensor(row[GeneralCFG.target_col]).float().unsqueeze(0)
+    def __getitem__(self, patient_id):
+        rows = self.input_df.iloc[patient_id]
+        lcc_rows = rows.loc[(rows["laterality"] == "L") & (rows["view"] == "CC")]
+        rcc_rows = rows.loc[(rows["laterality"] == "R") & (rows["view"] == "CC")]
+        lmlo_rows = rows.loc[(rows["laterality"] == "L") & (rows["view"] == "MLO")]
+        rmlo_rows = rows.loc[(rows["laterality"] == "R") & (rows["view"] == "MLO")]
 
-        # if not self.is_validation:
-        #     label = modify_labels(label, row)
+        lcc_image_names = lcc_rows["image_filename"].values
+        rcc_image_names = rcc_rows["image_filename"].values
+        lmlo_image_names = lmlo_rows["image_filename"].values
+        rmlo_image_names = rmlo_rows["image_filename"].values
 
-        return inputs, label
+        lcc_images = torch.stack([name_to_image(image_name, self.transform) for image_name in lcc_image_names])
+        rcc_images = torch.stack([name_to_image(image_name, self.transform) for image_name in rcc_image_names])
+        lmlo_images = torch.stack([name_to_image(image_name, self.transform) for image_name in lmlo_image_names])
+        rmlo_images = torch.stack([name_to_image(image_name, self.transform) for image_name in rmlo_image_names])
 
-    def get_labels(self):
-        return self.input_df[GeneralCFG.target_col].values
+        inputs = [lcc_images, rcc_images, lmlo_images, rmlo_images]
+
+        l_label = int(rows.loc[rows["laterality"] == "L"]["cancer"].max())
+        r_label = int(rows.loc[rows["laterality"] == "R"]["cancer"].max())
+
+        labels = torch.stack([l_label, r_label])
+
+        return inputs, labels
 
 
 class TestDataset(Dataset):
@@ -93,17 +72,22 @@ class TestDataset(Dataset):
         return len(self.input_df)
 
     def __getitem__(self, idx):
-        row = self.input_df.iloc[idx]
-        if GeneralCFG.train_image_dir.stem in ["lossless", "1536_ker_png"]:
-            inputs = prepare_input(
-                Path(str(row["machine_id"]), str(row["patient_id"]), str(row["image_id"])).with_suffix(".png"),
-                self.transform,
-                is_inference=self.is_inference
-            )
-        else:
-            inputs = prepare_input(
-                row["image_filename"],
-                self.transform,
-                is_inference=self.is_inference
-            )
+        rows = self.input_df.iloc[idx]
+        lcc_rows = rows.loc[(rows["laterality"] == "L") & (rows["view"] == "CC")]
+        rcc_rows = rows.loc[(rows["laterality"] == "R") & (rows["view"] == "CC")]
+        lmlo_rows = rows.loc[(rows["laterality"] == "L") & (rows["view"] == "MLO")]
+        rmlo_rows = rows.loc[(rows["laterality"] == "R") & (rows["view"] == "MLO")]
+
+        lcc_image_names = lcc_rows["image_filename"].values
+        rcc_image_names = rcc_rows["image_filename"].values
+        lmlo_image_names = lmlo_rows["image_filename"].values
+        rmlo_image_names = rmlo_rows["image_filename"].values
+
+        lcc_images = torch.stack([name_to_image(image_name, self.transform, self.is_inference) for image_name in lcc_image_names])
+        rcc_images = torch.stack([name_to_image(image_name, self.transform, self.is_inference) for image_name in rcc_image_names])
+        lmlo_images = torch.stack([name_to_image(image_name, self.transform, self.is_inference) for image_name in lmlo_image_names])
+        rmlo_images = torch.stack([name_to_image(image_name, self.transform, self.is_inference) for image_name in rmlo_image_names])
+
+        inputs = [lcc_images, rcc_images, lmlo_images, rmlo_images]
+
         return inputs
