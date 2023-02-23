@@ -37,37 +37,45 @@ class LitModel(
         else:
             base_model = timm.create_model(**model_config, pretrained=True)
 
-        self.stage0_lcc = nn.Sequential(
-            base_model.conv_stem,
-            base_model.bn1,
-            base_model.blocks[:4]
-        )
-        self.stage1_lcc = base_model.blocks[4]
-        self.stage2_lcc = base_model.blocks[5]
+        # self.stage0_lcc = nn.Sequential(
+        #     base_model.conv_stem,
+        #     base_model.bn1,
+        #     base_model.blocks[:4]
+        # )
+        # self.stage1_lcc = base_model.blocks[4]
+        # self.stage2_lcc = base_model.blocks[5]
+        #
+        # self.stage0_rcc = nn.Sequential(
+        #     base_model.conv_stem,
+        #     base_model.bn1,
+        #     base_model.blocks[:4]
+        # )
+        # self.stage1_rcc = base_model.blocks[4]
+        # self.stage2_rcc = base_model.blocks[5]
+        #
+        # self.stage0_lmlo = nn.Sequential(
+        #     base_model.conv_stem,
+        #     base_model.bn1,
+        #     base_model.blocks[:4]
+        # )
+        # self.stage1_lmlo = base_model.blocks[4]
+        # self.stage2_lmlo = base_model.blocks[5]
+        #
+        # self.stage0_rmlo = nn.Sequential(
+        #     base_model.conv_stem,
+        #     base_model.bn1,
+        #     base_model.blocks[:4]
+        # )
+        # self.stage1_rmlo = base_model.blocks[4]
+        # self.stage2_rmlo = base_model.blocks[5]
 
-        self.stage0_rcc = nn.Sequential(
+        self.stage0_backbone = nn.Sequential(
             base_model.conv_stem,
             base_model.bn1,
             base_model.blocks[:4]
         )
-        self.stage1_rcc = base_model.blocks[4]
-        self.stage2_rcc = base_model.blocks[5]
-
-        self.stage0_lmlo = nn.Sequential(
-            base_model.conv_stem,
-            base_model.bn1,
-            base_model.blocks[:4]
-        )
-        self.stage1_lmlo = base_model.blocks[4]
-        self.stage2_lmlo = base_model.blocks[5]
-
-        self.stage0_rmlo = nn.Sequential(
-            base_model.conv_stem,
-            base_model.bn1,
-            base_model.blocks[:4]
-        )
-        self.stage1_rmlo = base_model.blocks[4]
-        self.stage2_rmlo = base_model.blocks[5]
+        self.stage1_backbone = base_model.blocks[4]
+        self.stage2_backbone = base_model.blocks[5]
         
         self.cvam_stage0 = CrossViewAttentionModule(
             in_channels=base_model.blocks[:4][-1][-1].conv_pwl.out_channels,
@@ -80,19 +88,13 @@ class LitModel(
         )
 
         self.global_pool = nn.AdaptiveAvgPool2d(1)
-        self.l_mlp = nn.Sequential(
-            nn.Linear(base_model.blocks[5][-1].conv_pwl.out_channels * 2, 256),
-            nn.ReLU(inplace=True),
-            nn.Linear(256, 1),
-        )
-        self.r_mlp = nn.Sequential(
+        self.mlp = nn.Sequential(
             nn.Linear(base_model.blocks[5][-1].conv_pwl.out_channels * 2, 256),
             nn.ReLU(inplace=True),
             nn.Linear(256, 1),
         )
 
-        self._init_weights(self.l_mlp)
-        self._init_weights(self.r_mlp)
+        self._init_weights(self_mlp)
         self.loss = self._get_loss()
         self.learning_rate = CrossViewCFG.lr
 
