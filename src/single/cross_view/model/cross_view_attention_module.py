@@ -21,6 +21,13 @@ class BiLateralAttentionModule(nn.Module):
         AP_FRp = self.avg_pool(FRp)
         MP_FRp = self.max_pool(FRp)
 
+        if FLp.shape[0] != 1:
+            AP_FLp = AP_FLp.mean(dim=0, keepdim=True)
+            MP_FLp = MP_FLp.mean(dim=0, keepdim=True)
+        if FRp.shape[0] != 1:
+            AP_FRp = AP_FRp.mean(dim=0, keepdim=True)
+            MP_FRp = MP_FRp.mean(dim=0, keepdim=True)
+
         concat = torch.cat([AP_FLp, MP_FLp, AP_FRp, MP_FRp], dim=1)
         attention_map = self.conv(concat)
 
@@ -45,6 +52,13 @@ class BiProjectionAttentionModule(nn.Module):
         MP_FsCC = self.max_pool(FsCC)
         AP_FsMLO = self.avg_pool(FsMLO)
         MP_FsMLO = self.max_pool(FsMLO)
+
+        if FsCC.shape[0] != 1:
+            AP_FsCC = AP_FsCC.mean(dim=0, keepdim=True)
+            MP_FsCC = MP_FsCC.mean(dim=0, keepdim=True)
+        if FsMLO.shape[0] != 1:
+            AP_FsMLO = AP_FsMLO.mean(dim=0, keepdim=True)
+            MP_FsMLO = MP_FsMLO.mean(dim=0, keepdim=True)
 
         concat = torch.cat([AP_FsCC, MP_FsCC, AP_FsMLO, MP_FsMLO], dim=1)
         attention_map = self.mlp(concat.view(concat.size()[0], -1)).unsqueeze(-1).unsqueeze(-1)

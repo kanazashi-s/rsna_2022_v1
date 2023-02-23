@@ -26,24 +26,19 @@ class OptimizersMixin(pl.LightningModule):
         }
 
     def get_optimizer_parameters(self):
-        backbone_params = self.backbone.named_parameters()
+        model_params = self.named_parameters()
         no_decay = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
         optimizer_parameters = [
             {
-                'params': [p for n, p in backbone_params if not any(nd in n for nd in no_decay)],
+                'params': [p for n, p in model_params if not any(nd in n for nd in no_decay)],
                 'weight_decay': CrossViewCFG.weight_decay,
-                'lr': self.learning_rate * CrossViewCFG.backbone_lr_ratio
+                'lr': self.learning_rate
             },
             {
-                'params': [p for n, p in backbone_params if any(nd in n for nd in no_decay)],
+                'params': [p for n, p in model_params if any(nd in n for nd in no_decay)],
                 'weight_decay': 0.0,
-                'lr': self.learning_rate * CrossViewCFG.backbone_lr_ratio
+                'lr': self.learning_rate
             },
-            {
-                'params': self.fc.parameters(),
-                'weight_decay': 0.0,
-                'lr': self.learning_rate * CrossViewCFG.fc_lr_ratio
-            }
         ]
 
         return optimizer_parameters

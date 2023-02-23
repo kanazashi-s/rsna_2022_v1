@@ -51,6 +51,49 @@ class OnePositiveSampler(BatchSampler):
             return length
 
 
+class AccOnePositiveSampler(BatchSampler):
+    def __init__(self, indices, labels, pos_per_sample=8, sampler=None):
+        self.indices = indices
+        self.labels = labels
+        self.pos_per_sample = pos_per_sample
+        self.sampler = sampler
+        self.remaining_indices = np.arange(len(indices))
+        self.positive_indices = self.remaining_indices[self.labels == 1]
+        self.iter_count = 0
+
+    def __iter__(self):
+        while self.remaining_indices.size > 0:
+            if len(np.intersect1d(self.remaining_indices, self.positive_indices)) == 0:
+                self.remaining_indices = np.concatenate((self.remaining_indices, self.positive_indices))
+                print("Running out of positive samples. Added all positive samples to remaining indices.")
+
+            if len(np.setdiff1d(self.remaining_indices, self.positive_indices)) == 0:
+                self.remaining_indices = np.arange(len(self.indices))
+                print(f"Running out of negative samples. \nRemaining indices has been reset!")
+
+            rng = np.random.default_rng()
+
+            if self.iter_count % self.pos_per_sample == 0:
+                # Get a random positive index
+                return_index = rng.choice(
+                    np.intersect1d(self.remaining_indices, self.positive_indices),
+                    replace=False
+                )
+            else:
+                # Get a random negative index
+                return_index = rng.choice(
+                    np.setdiff1d(self.remaining_indices, self.positive_indices),
+                    replace=False
+                )
+
+            yield [self.indices[return_index]]
+            self.remaining_indices = np.setdiff1d(self.remaining_indices, return_index)
+            self.iter_count += 1
+
+    def __len__(self):
+        return len(self.positive_indices) * self.pos_per_sample
+
+
 class StratifiedOnePositiveSampler(BatchSampler):
     def __init__(self, indices, labels, batch_size, groups):
         assert len(indices) == len(labels) == len(groups)

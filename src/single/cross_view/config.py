@@ -10,14 +10,10 @@ class CrossViewCFG:
     model_name = "efficientnetv2_rw_s"
     drop_rate = 0.2
     drop_path_rate = 0.2
-    lr = 1.5e-4
-    backbone_lr_ratio = 1.0
-    pool_lr_ratio = 1.0
-    fc_lr_ratio = 1.0
-    batch_size = 8
-    epochs = 20
+    lr = 2e-4
+    epochs = 25
     max_grad_norm = 10
-    accumulate_grad_batches = 8
+    accumulate_grad_batches = 24
     init_weight = "orthogonal"
     optimizer_parameters = {
         "betas": (0.9, 0.999),
@@ -47,5 +43,5 @@ if GeneralCFG.is_kaggle:
 
 
 if GeneralCFG.debug:
-    CrossViewCFG.epochs = 2
+    CrossViewCFG.epochs = 1
     CrossViewCFG.output_dir = Path("/workspace", "output", "single", "debug_cross_view")

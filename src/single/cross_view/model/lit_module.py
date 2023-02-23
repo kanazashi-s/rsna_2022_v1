@@ -91,12 +91,13 @@ class LitModel(
             nn.Linear(256, 1),
         )
 
-        self._init_weights(self.fc)
+        self._init_weights(self.l_mlp)
+        self._init_weights(self.r_mlp)
         self.loss = self._get_loss()
         self.learning_rate = CrossViewCFG.lr
 
     def forward(self, inputs):
-        x_lcc, x_rcc, x_lmlo, x_rmlo = inputs
+        x_lcc, x_rcc, x_lmlo, x_rmlo = [image[0] for image in inputs]
 
         # stage0 forward
         x_lcc = self.stage0_lcc(x_lcc)
@@ -132,6 +133,15 @@ class LitModel(
         x_rmlo = self.global_pool(x_rmlo)
 
         # concat
+        if x_lcc.size(0) != 1:
+            x_lcc = x_lcc.mean(dim=0, keepdim=True)
+        if x_rcc.size(0) != 1:
+            x_rcc = x_rcc.mean(dim=0, keepdim=True)
+        if x_lmlo.size(0) != 1:
+            x_lmlo = x_lmlo.mean(dim=0, keepdim=True)
+        if x_rmlo.size(0) != 1:
+            x_rmlo = x_rmlo.mean(dim=0, keepdim=True)
+
         l_features = torch.cat([x_lcc, x_rcc], dim=1)
         l_features = l_features.view(l_features.size(0), -1)
         r_features = torch.cat([x_lmlo, x_rmlo], dim=1)
@@ -157,5 +167,10 @@ class LitModel(
 
 
 if __name__ == '__main__':
+    from single.cross_view.data_module import DataModule
+    data_module = DataModule(seed=42, fold=0, num_workers=0)
+    data_module.setup()
+    images, labels = next(iter(data_module.train_dataloader()))
     model = LitModel()
-    print(model)
+    outputs = model(images)
+    print(outputs.shape)

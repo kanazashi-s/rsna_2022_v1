@@ -35,7 +35,6 @@ def train(run_name: str, seed_list=None, device_idx=0):
             data_module = DataModule(
                 seed=seed,
                 fold=fold,
-                batch_size=CrossViewCFG.batch_size,
                 num_workers=GeneralCFG.num_workers,
             )
             data_module.setup()
@@ -63,7 +62,7 @@ def train(run_name: str, seed_list=None, device_idx=0):
             lr_monitor = pl.callbacks.LearningRateMonitor(logging_interval="step")
             swa_callback = pl.callbacks.StochasticWeightAveraging(
                 swa_lrs=1e-5,
-                swa_epoch_start=15,
+                swa_epoch_start=20,
                 annealing_epochs=0,
             )
 
@@ -125,7 +124,6 @@ def get_param_dict():
         "num_use_data": GeneralCFG.num_use_data,
         "model_name": CrossViewCFG.model_name,
         "lr": CrossViewCFG.lr,
-        "batch_size": CrossViewCFG.batch_size,
         "epochs": CrossViewCFG.epochs,
         "max_grad_norm": CrossViewCFG.max_grad_norm,
         "accumulate_grad_batches": CrossViewCFG.accumulate_grad_batches,
@@ -185,23 +183,9 @@ if __name__ == "__main__":
     # CrossViewCFG.output_dir = Path("/workspace", "output", "single", "cross_view", "baseline_512")
     # oof_pfbeta_seed_mean = train(f"cross_view_baseline", seed_list=[42], device_idx=0)
 
-    # GeneralCFG.num_workers = 2
-    # CrossViewCFG.batch_size = 12
-    # CrossViewCFG.accumulate_grad_batches = 4
-    # CrossViewCFG.output_dir = Path("/workspace", "output", "single", "cross_view", "1536_ker_swa_smooth")
-    # CrossViewCFG.epochs = 20
-    # CrossViewCFG.lr = 2e-4
-    # GeneralCFG.image_size = 1024
-    # GeneralCFG.train_image_dir = GeneralCFG.png_data_dir / "1536_ker_png"
-    # CrossViewCFG.model_name = "efficientnetv2_rw_s"
-    # train(f"1536_ker_swa_smooth_effnetv2s", seed_list=[42], device_idx=0)
-
-    GeneralCFG.num_workers = 0
-    CrossViewCFG.batch_size = 8
-    CrossViewCFG.accumulate_grad_batches = 8
+    GeneralCFG.num_workers = 2
+    CrossViewCFG.accumulate_grad_batches = 24
     CrossViewCFG.output_dir = Path("/workspace", "output", "single", "cross_view", "1536_ker_swa_smooth")
-    CrossViewCFG.epochs = 20
-    GeneralCFG.image_size = 1024
     GeneralCFG.train_image_dir = GeneralCFG.png_data_dir / "1536_ker_png"
     CrossViewCFG.model_name = "efficientnetv2_rw_s"
     train(f"cross_view_1536_ker_baseline_effnetv2s", seed_list=[42], device_idx=1)

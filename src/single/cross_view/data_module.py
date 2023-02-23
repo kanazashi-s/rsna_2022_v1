@@ -5,7 +5,7 @@ import polars as pol
 from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 from torchsampler import ImbalancedDatasetSampler
-from utils.model_utils.torch_samplers import OnePositiveSampler, StratifiedOnePositiveSampler, StratifiedSampler
+from utils.model_utils.torch_samplers import AccOnePositiveSampler
 from data import load_processed_data_pol
 from single.cross_view.config import CrossViewCFG
 from single.cross_view.dataset import TrainDataset, TestDataset
@@ -14,11 +14,10 @@ from cfg.general import GeneralCFG
 
 
 class DataModule(pl.LightningDataModule):
-    def __init__(self, seed: int, fold: int, batch_size: int, num_workers: int):
+    def __init__(self, seed: int, fold: int, num_workers: int):
         super().__init__()
         self.seed = seed
         self.fold = fold
-        self.batch_size = batch_size
         self.num_workers = num_workers
 
     def setup(self, stage="fit") -> None:
@@ -53,88 +52,47 @@ class DataModule(pl.LightningDataModule):
         )
 
     def train_dataloader(self):
-        if CrossViewCFG.sampler == "ImbalancedDatasetSampler":
-            sampler_dict = {
-                "sampler": ImbalancedDatasetSampler(
-                    self.train_dataset,
-                    num_samples=CrossViewCFG.num_samples_per_epoch,
-                ),
-                "shuffle": False,
-                "batch_size": self.batch_size
-            }
-        elif CrossViewCFG.sampler == "OnePositiveSampler":
-            sampler_dict = {
-                "batch_sampler": OnePositiveSampler(
-                    indices=np.arange(len(self.train_dataset)),
-                    labels=self.train_dataset.input_df[GeneralCFG.target_col].to_numpy(),
-                    batch_size=self.batch_size,
-                ),
-                # "shuffle": False
-            }
-        elif CrossViewCFG.sampler == "StratifiedOnePositiveSampler":
-            sampler_dict = {
-                "batch_sampler": StratifiedOnePositiveSampler(
-                    indices=np.arange(len(self.train_dataset)),
-                    labels=self.train_dataset.input_df[GeneralCFG.target_col].to_numpy(),
-                    batch_size=self.batch_size,
-                    groups=self.train_dataset.input_df["Rows"].to_numpy(),
-                ),
-                # "shuffle": False
-            }
-        elif CrossViewCFG.sampler is None:
-            sampler_dict = {
-                "shuffle": True,
-                "batch_size": self.batch_size
-            }
-        else:
-            raise NotImplementedError
-
         return DataLoader(
             self.train_dataset,
             num_workers=self.num_workers,
-            **sampler_dict
+            batch_sampler=AccOnePositiveSampler(
+                indices=np.arange(len(self.train_dataset.unique_patient_ids)),
+                labels=self.train_dataset.get_labels_per_patient(),
+            ),
+            pin_memory=True,
         )
 
     def val_dataloader(self):
-        if CrossViewCFG.sampler == "StratifiedOnePositiveSampler":
-            sampler_dict = {
-                "batch_sampler": StratifiedSampler(
-                    indices=np.arange(len(self.valid_dataset)),
-                    groups=self.valid_dataset.input_df["Rows"].to_numpy(),
-                    batch_size=self.batch_size,
-                ),
-            }
-        else:
-            sampler_dict = {
-                "shuffle": False,
-                "batch_size": self.batch_size
-            }
         return DataLoader(
             self.valid_dataset,
             num_workers=self.num_workers,
-            **sampler_dict
+            shuffle=False,
+            batch_size=1,
+            pin_memory=True,
         )
 
 
     def test_dataloader(self):
         return DataLoader(
             self.test_dataset,
-            batch_size=self.batch_size,
+            batch_size=1,
             num_workers=self.num_workers,
-            shuffle=False
+            shuffle=False,
+            pin_memory=True,
         )
 
     def predict_dataloader(self):
         return DataLoader(
             self.val_predict_dataset,
-            batch_size=self.batch_size * 4,
+            batch_size=1,
             num_workers=self.num_workers,
-            shuffle=False
+            shuffle=False,
+            pin_memory=True,
         )
 
 
 if __name__ == "__main__":
-    data_module = DataModule(seed=42, fold=0, batch_size=2, num_workers=0)
+    data_module = DataModule(seed=42, fold=0, num_workers=0)
     data_module.setup()
     for inputs, labels in data_module.train_dataloader():
         print(inputs)
