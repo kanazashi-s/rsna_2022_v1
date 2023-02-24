@@ -74,13 +74,9 @@ class LitModel(
         num_rmlo = x_rmlo.shape[0]
         x = self._concat_views(x_lcc, x_rcc, x_lmlo, x_rmlo)
 
-        # stage0 forward
+        # forward
         x = self.stage0_backbone(x)
-
-        # stage1 forward
         x = self.stage1_backbone(x)
-
-        # stage2 forward
         x = self.stage2_backbone(x)
 
         # cvam stage2

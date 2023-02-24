@@ -10,9 +10,10 @@ class CrossViewCFG:
     model_name = "efficientnetv2_rw_s"
     drop_rate = 0.2
     drop_path_rate = 0.2
-    lr = 3e-4
+    lr = 5e-4
+    backbone_lr_factor = 0.2
     epochs = 25
-    max_grad_norm = 10
+    max_grad_norm = 100
     accumulate_grad_batches = 24
     init_weight = "orthogonal"
     optimizer_parameters = {

@@ -38,6 +38,10 @@ class TrainDataset(Dataset):
     def __getitem__(self, idx):
         patient_id = self.unique_patient_ids[idx]
         rows = self.input_df.loc[self.input_df["patient_id"] == patient_id]
+
+        if len(rows) > 9:
+            rows = drop_random_rows(rows, len(rows) - 9)
+
         lcc_rows = rows.loc[(rows["laterality"] == "L") & (rows["view"] == "CC")]
         rcc_rows = rows.loc[(rows["laterality"] == "R") & (rows["view"] == "CC")]
         lmlo_rows = rows.loc[(rows["laterality"] == "L") & (rows["view"] == "MLO")]
@@ -80,6 +84,14 @@ class TestDataset(Dataset):
     def __getitem__(self, idx):
         patient_id = self.unique_patient_ids[idx]
         rows = self.input_df.loc[self.input_df["patient_id"] == patient_id]
+
+        # rows の要素数が 8 から 11 の場合
+        if 8 <= len(rows) <= 11:
+            rows = drop_random_rows(rows, 1)
+        # rows の要素数が 12 以上の場合
+        elif len(rows) > 11:
+            rows = drop_random_rows(rows, 2)
+
         lcc_rows = rows.loc[(rows["laterality"] == "L") & (rows["view"] == "CC")]
         rcc_rows = rows.loc[(rows["laterality"] == "R") & (rows["view"] == "CC")]
         lmlo_rows = rows.loc[(rows["laterality"] == "L") & (rows["view"] == "MLO")]
@@ -98,6 +110,35 @@ class TestDataset(Dataset):
         inputs = [lcc_images, rcc_images, lmlo_images, rmlo_images]
 
         return inputs
+
+
+def drop_random_rows(rows, n, group_cols=["laterality", "view"]):
+    """
+    特定のデータフレームから、指定された列でグループ化し、同一のパターンが
+    多く存在するグループからランダムにn行を削除する関数。
+
+    :param rows: 対象のデータフレーム
+    :param n: 1グループから削除する行数
+    :param group_cols: グループ化する列のリスト
+    :return: 行を削除したデータフレーム
+    """
+
+    # laterality と view の組み合わせに基づいてグループ化し、各グループの行数を数える
+    grouped_df = rows.groupby(group_cols).size().reset_index(name='count')
+
+    # 2行以上のグループを抽出
+    filtered_df = grouped_df[grouped_df['count'] >= n+1]
+
+    # フィルタリングされたグループのインデックスを取得する
+    indices_to_drop = []
+    for index, row in filtered_df.iterrows():
+        filtered_rows = rows
+        for col in group_cols:
+            filtered_rows = filtered_rows[filtered_rows[col] == row[col]]
+        indices_to_drop += list(np.random.choice(filtered_rows.index, size=n, replace=False))
+
+    # インデックスを使用して行を削除する
+    return rows.drop(indices_to_drop)
 
 
 if __name__ == "__main__":

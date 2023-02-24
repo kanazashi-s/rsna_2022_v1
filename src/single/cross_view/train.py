@@ -69,6 +69,7 @@ def train(run_name: str, seed_list=None, device_idx=0):
             callbacks = [loss_callback, lr_monitor, swa_callback]
 
             trainer = pl.Trainer(
+                profiler="simple",
                 devices=[device_idx],
                 accelerator="gpu",
                 # strategy="ddp",
@@ -180,10 +181,11 @@ def log_all_metrics(mlflow_logger, whole_metrics, metrics_by_folds, metrics_each
 
 
 if __name__ == "__main__":
-    # CrossViewCFG.output_dir = Path("/workspace", "output", "single", "cross_view", "baseline_512")
-    # oof_pfbeta_seed_mean = train(f"cross_view_baseline", seed_list=[42], device_idx=0)
+    if GeneralCFG.debug:
+        GeneralCFG.num_workers = 0
+    else:
+        GeneralCFG.num_workers = 2
 
-    GeneralCFG.num_workers = 2
     CrossViewCFG.accumulate_grad_batches = 24
     CrossViewCFG.output_dir = Path("/workspace", "output", "single", "cross_view", "1536_ker_swa_smooth")
     GeneralCFG.train_image_dir = GeneralCFG.png_data_dir / "1536_ker_png"

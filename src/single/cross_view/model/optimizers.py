@@ -27,6 +27,7 @@ class OptimizersMixin(pl.LightningModule):
 
     def get_optimizer_parameters(self):
         init_params = list(self.cvam_stage2.named_parameters()) + list(self.mlp.named_parameters())
+        backbone_params = list(self.stage1_backbone.named_parameters()) + list(self.stage2_backbone.named_parameters())
 
         no_decay = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
         optimizer_parameters = [
@@ -39,6 +40,16 @@ class OptimizersMixin(pl.LightningModule):
                 'params': [p for n, p in init_params if any(nd in n for nd in no_decay)],
                 'weight_decay': 0.0,
                 'lr': self.learning_rate
+            },
+            {
+                'params': [p for n, p in backbone_params if not any(nd in n for nd in no_decay)],
+                'weight_decay': CrossViewCFG.weight_decay,
+                'lr': self.learning_rate * CrossViewCFG.backbone_lr_factor
+            },
+            {
+                'params': [p for n, p in backbone_params if any(nd in n for nd in no_decay)],
+                'weight_decay': 0.0,
+                'lr': self.learning_rate * CrossViewCFG.backbone_lr_factor
             },
         ]
 
