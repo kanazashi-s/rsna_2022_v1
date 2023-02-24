@@ -10,7 +10,7 @@ class CrossViewCFG:
     model_name = "efficientnetv2_rw_s"
     drop_rate = 0.2
     drop_path_rate = 0.2
-    lr = 2e-4
+    lr = 3e-4
     epochs = 25
     max_grad_norm = 10
     accumulate_grad_batches = 24
@@ -39,7 +39,6 @@ class CrossViewCFG:
 if GeneralCFG.is_kaggle:
     CrossViewCFG.uploaded_model_dir = Path("/kaggle", "input", CrossViewCFG.upload_name)
     CrossViewCFG.trt_model_dir = Path("/kaggle", "input", CrossViewCFG.upload_name + "-trt")
-    CrossViewCFG.batch_size = 4
 
 
 if GeneralCFG.debug:

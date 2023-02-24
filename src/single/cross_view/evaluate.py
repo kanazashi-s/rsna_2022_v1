@@ -38,7 +38,6 @@ def evaluate(seed, device_idx=0):
         data_module = DataModule(
             seed=seed,
             fold=fold,
-            batch_size=CrossViewCFG.batch_size,
             num_workers=GeneralCFG.num_workers,
         )
         data_module.setup()

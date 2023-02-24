@@ -45,12 +45,12 @@ class LitModel(
         self.stage1_backbone = base_model.blocks[4]
         self.stage2_backbone = base_model.blocks[5]
         
-        self.cvam_stage0 = CrossViewAttentionModule(
-            in_channels=base_model.blocks[:4][-1][-1].conv_pwl.out_channels,
-        )
-        self.cvam_stage1 = CrossViewAttentionModule(
-            in_channels=base_model.blocks[4][-1].conv_pwl.out_channels,
-        )
+        # self.cvam_stage0 = CrossViewAttentionModule(
+        #     in_channels=base_model.blocks[:4][-1][-1].conv_pwl.out_channels,
+        # )
+        # self.cvam_stage1 = CrossViewAttentionModule(
+        #     in_channels=base_model.blocks[4][-1].conv_pwl.out_channels,
+        # )
         self.cvam_stage2 = CrossViewAttentionModule(
             in_channels=base_model.blocks[5][-1].conv_pwl.out_channels,
         )

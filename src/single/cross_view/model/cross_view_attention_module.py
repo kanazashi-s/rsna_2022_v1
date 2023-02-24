@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from utils.model_utils.pl_mixin import InitWeightsMixin
 
 
 class BiLateralAttentionModule(nn.Module):

@@ -2,11 +2,15 @@ import torch.nn as nn
 import pytorch_lightning as pl
 
 
-class InitWeightsMixin(pl.LightningModule):
+class InitWeightsMixin:
     @staticmethod
     def _init_weights(module):
         if isinstance(module, nn.Linear):
             module.weight.data = nn.init.orthogonal_(module.weight.data)
+            if module.bias is not None:
+                module.bias.data.zero_()
+        elif isinstance(module, nn.Conv2d):
+            nn.init.kaiming_normal_(module.weight.data)
             if module.bias is not None:
                 module.bias.data.zero_()
         elif isinstance(module, nn.Embedding):

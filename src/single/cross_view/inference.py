@@ -48,7 +48,6 @@ def inference(seed):
 
         test_dataloader = DataLoader(
             test_dataset,
-            batch_size=CrossViewCFG.batch_size,
             shuffle=False,
             num_workers=GeneralCFG.num_workers,
             pin_memory=True,
@@ -104,11 +103,9 @@ def inference(seed):
     return predictions_df
 
 
-def calc_seed_mean(seeds=GeneralCFG.seeds, num_workers=None, batch_size=None):
+def calc_seed_mean(seeds=GeneralCFG.seeds, num_workers=None):
     if num_workers is not None:
         GeneralCFG.num_workers = num_workers
-    if batch_size is not None:
-        CrossViewCFG.batch_size = batch_size
 
     predictions_df_list = []
     for seed in seeds:
