@@ -37,38 +37,6 @@ class LitModel(
         else:
             base_model = timm.create_model(**model_config, pretrained=True)
 
-        # self.stage0_lcc = nn.Sequential(
-        #     base_model.conv_stem,
-        #     base_model.bn1,
-        #     base_model.blocks[:4]
-        # )
-        # self.stage1_lcc = base_model.blocks[4]
-        # self.stage2_lcc = base_model.blocks[5]
-        #
-        # self.stage0_rcc = nn.Sequential(
-        #     base_model.conv_stem,
-        #     base_model.bn1,
-        #     base_model.blocks[:4]
-        # )
-        # self.stage1_rcc = base_model.blocks[4]
-        # self.stage2_rcc = base_model.blocks[5]
-        #
-        # self.stage0_lmlo = nn.Sequential(
-        #     base_model.conv_stem,
-        #     base_model.bn1,
-        #     base_model.blocks[:4]
-        # )
-        # self.stage1_lmlo = base_model.blocks[4]
-        # self.stage2_lmlo = base_model.blocks[5]
-        #
-        # self.stage0_rmlo = nn.Sequential(
-        #     base_model.conv_stem,
-        #     base_model.bn1,
-        #     base_model.blocks[:4]
-        # )
-        # self.stage1_rmlo = base_model.blocks[4]
-        # self.stage2_rmlo = base_model.blocks[5]
-
         self.stage0_backbone = nn.Sequential(
             base_model.conv_stem,
             base_model.bn1,
@@ -94,38 +62,29 @@ class LitModel(
             nn.Linear(256, 1),
         )
 
-        self._init_weights(self_mlp)
+        self._init_weights(self.mlp)
         self.loss = self._get_loss()
         self.learning_rate = CrossViewCFG.lr
 
     def forward(self, inputs):
         x_lcc, x_rcc, x_lmlo, x_rmlo = [image[0] for image in inputs]
+        num_lcc = x_lcc.shape[0]
+        num_rcc = x_rcc.shape[0]
+        num_lmlo = x_lmlo.shape[0]
+        num_rmlo = x_rmlo.shape[0]
+        x = self._concat_views(x_lcc, x_rcc, x_lmlo, x_rmlo)
 
         # stage0 forward
-        x_lcc = self.stage0_lcc(x_lcc)
-        x_rcc = self.stage0_rcc(x_rcc)
-        x_lmlo = self.stage0_lmlo(x_lmlo)
-        x_rmlo = self.stage0_rmlo(x_rmlo)
-
-        # cvam stage0
-        x_lcc, x_rcc, x_lmlo, x_rmlo = self.cvam_stage0(x_lcc, x_rcc, x_lmlo, x_rmlo)
+        x = self.stage0_backbone(x)
 
         # stage1 forward
-        x_lcc = self.stage1_lcc(x_lcc)
-        x_rcc = self.stage1_rcc(x_rcc)
-        x_lmlo = self.stage1_lmlo(x_lmlo)
-        x_rmlo = self.stage1_rmlo(x_rmlo)
-
-        # cvam stage1
-        x_lcc, x_rcc, x_lmlo, x_rmlo = self.cvam_stage1(x_lcc, x_rcc, x_lmlo, x_rmlo)
+        x = self.stage1_backbone(x)
 
         # stage2 forward
-        x_lcc = self.stage2_lcc(x_lcc)
-        x_rcc = self.stage2_rcc(x_rcc)
-        x_lmlo = self.stage2_lmlo(x_lmlo)
-        x_rmlo = self.stage2_rmlo(x_rmlo)
+        x = self.stage2_backbone(x)
 
         # cvam stage2
+        x_lcc, x_rcc, x_lmlo, x_rmlo = self._split_views(x, num_lcc, num_rcc, num_lmlo, num_rmlo)
         x_lcc, x_rcc, x_lmlo, x_rmlo = self.cvam_stage2(x_lcc, x_rcc, x_lmlo, x_rmlo)
 
         # global pool
@@ -150,11 +109,25 @@ class LitModel(
         r_features = r_features.view(r_features.size(0), -1)
 
         # mlp
-        l_output = self.l_mlp(l_features)
-        r_output = self.r_mlp(r_features)
+        l_output = self.mlp(l_features)
+        r_output = self.mlp(r_features)
         outputs = torch.cat([l_output, r_output], dim=1)
 
         return outputs
+
+    @staticmethod
+    def _split_views(x, num_lcc, num_rcc, num_lmlo, num_rmlo):
+        x_lcc = x[:num_lcc]
+        x_rcc = x[num_lcc:num_lcc + num_rcc]
+        x_lmlo = x[num_lcc + num_rcc:num_lcc + num_rcc + num_lmlo]
+        x_rmlo = x[num_lcc + num_rcc + num_lmlo:]
+        assert x_rmlo.shape[0] == num_rmlo
+        return x_lcc, x_rcc, x_lmlo, x_rmlo
+
+    @staticmethod
+    def _concat_views(x_lcc, x_rcc, x_lmlo, x_rmlo):
+        x = torch.cat([x_lcc, x_rcc, x_lmlo, x_rmlo], dim=0)
+        return x
 
     @staticmethod
     def _get_loss():
@@ -170,9 +143,13 @@ class LitModel(
 
 if __name__ == '__main__':
     from single.cross_view.data_module import DataModule
+    import torchinfo
     data_module = DataModule(seed=42, fold=0, num_workers=0)
     data_module.setup()
     images, labels = next(iter(data_module.train_dataloader()))
     model = LitModel()
     outputs = model(images)
     print(outputs.shape)
+
+    torchinfo.summary(model, input_size=(4, 1, 1, 1, 1536, 1410))
+    print(model)

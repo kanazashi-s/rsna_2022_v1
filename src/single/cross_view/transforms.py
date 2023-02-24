@@ -14,9 +14,9 @@ def get_transforms(augment=True, visualize=False):
 
     if augment:
         transforms_list.extend([
-            T.RandomHorizontalFlip(p=0.5),
+            # T.RandomHorizontalFlip(p=0.5),
             # T.RandomVerticalFlip(p=0.5),
-            T.RandomAffine(degrees=15, translate=(0.1, 0.1), scale=(0.9, 1.1), shear=15),
+            T.RandomAffine(degrees=10, translate=(0.1, 0.1), scale=(0.9, 1.1), shear=10),
             # T.GaussianBlur(kernel_size=3, sigma=(0.1, 2.0)),
             # T.ColorJitter(brightness=0.1, contrast=0.1, saturation=0.1, hue=0.1),
         ])
