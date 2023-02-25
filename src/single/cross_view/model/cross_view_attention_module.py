@@ -40,9 +40,9 @@ class BiProjectionAttentionModule(nn.Module):
         super(BiProjectionAttentionModule, self).__init__()
 
         self.mlp = nn.Sequential(
-            nn.Linear(in_channels * 4, in_channels * 4),
+            nn.Linear(in_channels * 4, in_channels * 2),
             nn.ReLU(inplace=True),
-            nn.Linear(in_channels * 4, in_channels),
+            nn.Linear(in_channels * 2, in_channels),
             nn.Sigmoid()
         )
         self.avg_pool = nn.AdaptiveAvgPool2d(output_size=(1, 1))

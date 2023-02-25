@@ -1,3 +1,5 @@
+import math
+import numpy as np
 import cv2
 # import albumentations as A
 # from albumentations.pytorch import ToTensorV2
@@ -47,19 +49,18 @@ def affine_param_to_matrix(
     return matrix
 
 
-# np.warnings.filterwarnings('ignore', category=np.VisibleDeprecationWarning)
-def do_random_affine(
-    image,
-    degree=30,
-    translate=0.1,
+def get_random_affine_matrix(
+    image_shape=(1536, 1410),
+    degree=15,
+    translate=0.,
     scale=0.2,
     shear=10,
 ):
-    h,w = image.shape[:2]
+    h, w = image_shape
     degree = np.random.uniform(-degree, degree)
-    scale  = np.random.uniform(-scale, scale)+1
-    translate_x, translate_y  = np.random.uniform(-translate, translate,2)*[w,h]
-    shear_x, shear_y  = np.random.uniform(-shear, shear,2)
+    scale = np.random.uniform(-scale, scale) + 1
+    translate_x, translate_y = np.random.uniform(-translate, translate, 2) * [w, h]
+    shear_x, shear_y = np.random.uniform(-shear, shear, 2)
 
     matrix = affine_param_to_matrix(
         degree,
@@ -67,6 +68,14 @@ def do_random_affine(
         (translate_x, translate_y),
         (shear_x, shear_y),
     )
-    image = cv2.warpAffine( image, matrix, (w,h), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT, borderValue=0)
 
-    return image
+    return matrix
+
+
+def get_random_affine_params():
+    return {
+        "angle": np.random.uniform(-10, 10),
+        "translate": np.random.uniform(-0.1, 0.1, 2),
+        "scale": np.random.uniform(-0.1, 0.1) + 1,
+        "shear": np.random.uniform(-10, 10, 2),
+    }

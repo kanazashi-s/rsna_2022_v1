@@ -20,11 +20,14 @@ class LGBMStackingCFG:
         "objective": "binary",
         "metric": "average_precision",
         "learning_rate": 0.03,
-        "max_depth": 5,
-        "min_child_samples": 12,
+        "max_depth": 6,
+        "min_data_in_leaf": 300,
+        "min_child_samples": 50,
+        "scale_pos_weight": 1.1
+        # is_unbalance=True,
     }
     early_stopping_rounds = 50
-    verbose = 1
+    verbose = -1
 
 
 if GeneralCFG.is_kaggle:

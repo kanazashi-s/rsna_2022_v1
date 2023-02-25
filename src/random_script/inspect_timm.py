@@ -7,12 +7,12 @@ import torchinfo
 
 
 if __name__ == "__main__":
-    print(timm.list_models("*vit*", pretrained=True))
-    model = timm.create_model("efficientnetv2_s", pretrained=False, num_classes=1, in_chans=3)
-    print(torchinfo.summary(model, input_size=(1, 3, 224, 224), depth=4))
+    print(timm.list_models("*maxxvit*", pretrained=True))
+    compare_model = timm.create_model("maxxvit_rmlp_nano_rw_256", pretrained=False, in_chans=1)
+    effnetv2_s = timm.create_model("efficientnetv2_s", pretrained=False, in_chans=1)
 
-    model2 = timm.create_model("efficientnetv2_s", pretrained=False, in_chans=3)
-    print(torchinfo.summary(model2, input_size=(1, 3, 224, 224), depth=4))
-    model2.classifier = nn.Linear(model2.conv_head.out_channels, 1)
+    input_shape = (8, 1, 1536, 1410)
+    torchinfo.summary(compare_model, input_size=input_shape)
+    torchinfo.summary(effnetv2_s, input_size=input_shape)
 
     print("a")

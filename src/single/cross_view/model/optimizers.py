@@ -27,7 +27,11 @@ class OptimizersMixin(pl.LightningModule):
 
     def get_optimizer_parameters(self):
         init_params = list(self.cvam_stage2.named_parameters()) + list(self.mlp.named_parameters())
-        backbone_params = list(self.stage1_backbone.named_parameters()) + list(self.stage2_backbone.named_parameters())
+        backbone_params = list(
+            self.stage1_backbone.named_parameters())\
+            + list(self.stage2_backbone.named_parameters())\
+            + list(self.stage0_backbone.named_parameters()
+        )
 
         no_decay = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
         optimizer_parameters = [

@@ -57,9 +57,7 @@ class LitModel(
 
         self.global_pool = nn.AdaptiveAvgPool2d(1)
         self.mlp = nn.Sequential(
-            nn.Linear(base_model.blocks[5][-1].conv_pwl.out_channels * 2, 256),
-            nn.ReLU(inplace=True),
-            nn.Linear(256, 1),
+            nn.Linear(base_model.blocks[5][-1].conv_pwl.out_channels * 2, 1),
         )
 
         self._init_weights(self.mlp)

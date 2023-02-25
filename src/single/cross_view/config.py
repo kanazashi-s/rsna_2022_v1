@@ -10,8 +10,8 @@ class CrossViewCFG:
     model_name = "efficientnetv2_rw_s"
     drop_rate = 0.2
     drop_path_rate = 0.2
-    lr = 5e-4
-    backbone_lr_factor = 0.2
+    lr = 2e-4
+    backbone_lr_factor = 1.0
     epochs = 25
     max_grad_norm = 100
     accumulate_grad_batches = 24

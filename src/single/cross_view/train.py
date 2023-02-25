@@ -186,7 +186,7 @@ if __name__ == "__main__":
     else:
         GeneralCFG.num_workers = 2
 
-    CrossViewCFG.accumulate_grad_batches = 24
+    CrossViewCFG.accumulate_grad_batches = 16
     CrossViewCFG.output_dir = Path("/workspace", "output", "single", "cross_view", "1536_ker_swa_smooth")
     GeneralCFG.train_image_dir = GeneralCFG.png_data_dir / "1536_ker_png"
     CrossViewCFG.model_name = "efficientnetv2_rw_s"
