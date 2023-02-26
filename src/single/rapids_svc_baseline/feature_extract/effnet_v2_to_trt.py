@@ -35,8 +35,7 @@ def litmodule_to_trt(model_dir, seed: int = 42):
 
     inputs = [
         torch_tensorrt.Input(
-            shape=[32, 1, 1536, 1410],
-            dtype=torch.float,
+            shape=[1, 1, 1536, 1410],
         )
     ]
     enabled_precisions = {torch.float, torch.half}  # Run with fp16
