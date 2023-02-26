@@ -22,16 +22,20 @@ def extract(base_df, use_saved_features=True):
         feature_df = pol.read_csv(RapidsSvcBaselineCFG.output_dir / "feature_extract" / "effnet_v2_m.csv")
         return feature_df
 
-    trt_model_path = RapidsSvcBaselineCFG.output_dir / f"seed42" / f"trt_effnet_v2_m.ts"
-    trt_ts_model = torch.jit.load(trt_model_path)
-    dataloader = get_extract_dataloader(base_df)
+    model = timm.create_model(
+        "tf_efficientnetv2_m_in21ft1k",
+        pretrained=True,
+        num_classes=0,
+        in_chans=1,
+    ).cuda().half()
+    dataloader = get_extract_dataloader(base_df, batch_size=8)
 
     features = []
     for batch in tqdm(dataloader):
         batch = batch.cuda().half()
         with torch.no_grad():
             with amp.autocast(enabled=True):
-                feature = trt_ts_model(batch)
+                feature = model(batch)
                 features.append(feature)
     features = torch.cat(features)
     features = features.detach().cpu().numpy()
