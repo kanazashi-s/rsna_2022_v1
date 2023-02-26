@@ -41,7 +41,7 @@ def extract(base_df, use_saved_features=True):
     features = features.detach().cpu().numpy()
 
     feature_df = pol.concat([
-        base_df["image_id"],
+        base_df.select(pol.col("image_id")),
         pol.DataFrame(features),
     ], how="horizontal")
     return feature_df
@@ -52,4 +52,5 @@ if __name__ == "__main__":
     from single.rapids_svc_baseline.config import RapidsSvcBaselineCFG
     train_df = load_processed_data_pol.train(42)
     feature_df = extract(train_df, use_saved_features=False)
+    (RapidsSvcBaselineCFG.output_dir / "feature_extract").mkdir(exist_ok=True, parents=True)
     feature_df.write_csv(RapidsSvcBaselineCFG.output_dir / "feature_extract" / "effnet_v2_m.csv")
