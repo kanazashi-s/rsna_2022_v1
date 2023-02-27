@@ -7,12 +7,12 @@ import numpy as np
 import polars as pol
 import mlflow
 from cuml.svm import SVC
+from sklearn.preprocessing import StandardScaler
 from cfg.general import GeneralCFG
 from data import load_processed_data_pol
-from features import build_features
 from single.rapids_svc_baseline.config import RapidsSvcBaselineCFG
 from single.rapids_svc_baseline.feature_extract import effnet_v2_m
-from single.rapids_svc_baseline.feature_extract import pretrain_effnet_v2_s
+# from single.rapids_svc_baseline.feature_extract import pretrain_effnet_v2_s
 from single.rapids_svc_baseline.evaluate import evaluate
 from utils.upload_model import create_dataset_metadata
 
@@ -23,31 +23,35 @@ def train(seed_list=None):
         seed_list = GeneralCFG.seeds
 
     for seed in seed_list:
-        shutil.rmtree(RapidsSvcBaselineCFG.output_dir, ignore_errors=True)
-        RapidsSvcBaselineCFG.output_dir.mkdir(parents=True, exist_ok=True)
 
         whole_base_df = load_processed_data_pol.train(seed=42)
 
-        effnet_v2_m_features = effnet_v2_m.extract(whole_base_df)
-        pretrain_effnet_v2_s_features = pretrain_effnet_v2_s.extract(whole_base_df)
+        effnet_v2_m_features = effnet_v2_m.extract(whole_base_df, use_saved_features=True)
+        # pretrain_effnet_v2_s_features = pretrain_effnet_v2_s.extract(whole_base_df)
 
-        whole_df = whole_base_df.join(
+        whole_df = whole_base_df.select([
+            pol.col("image_id"),
+            pol.col(GeneralCFG.target_col),
+            pol.col("fold"),
+        ]).join(
             effnet_v2_m_features, on="image_id", how="left"
-        ).join(
-            pretrain_effnet_v2_s_features, on="image_id", how="left"
         )
+        #     .join(
+        #     pretrain_effnet_v2_s_features, on="image_id", how="left"
+        # )
 
-        X = whole_df.drop(["prediction_id", "image_id", "fold", GeneralCFG.target_col]).to_numpy()
+        X = whole_df.drop(["image_id", GeneralCFG.target_col, "fold"]).to_numpy()
         y = whole_df.get_column(GeneralCFG.target_col).to_numpy()
         folds = whole_df.get_column("fold").to_numpy()
 
         for fold in GeneralCFG.train_fold:
+
             experiment_name_prefix = "debug_" if GeneralCFG.debug else ""
-            mlflow_logger = pl.loggers.MLFlowLogger(
-                experiment_name=experiment_name_prefix + f"rapids_svc_baseline",
-                run_name=f"{run_name}_seed_{seed}_fold{fold}",
-            )
-            mlflow_logger.log_hyperparams(get_param_dict())
+            # mlflow_logger = pl.loggers.MLFlowLogger(
+            #     experiment_name=experiment_name_prefix + f"rapids_svc_baseline",
+            #     run_name=f"{run_name}_seed_{seed}_fold{fold}",
+            # )
+            mlflow_logger = mlflow.MlflowClient()
 
             X_train = X[folds != fold]
             y_train = y[folds != fold]
@@ -58,11 +62,13 @@ def train(seed_list=None):
 
             model = SVC(
                 C=RapidsSvcBaselineCFG.C,
+                probability=True,
             )
             model.fit(X_train, y_train)
             pickle.dump(model, open(RapidsSvcBaselineCFG.output_dir / f"model_fold{fold}.pkl", "wb"))
+            print(f"fold{fold} is trained")
 
-        whole_metrics, metrics_by_folds, metrics_each_fold = evaluate(seed, device_idx)
+        whole_metrics, metrics_by_folds, metrics_each_fold = evaluate(seed=seed)
         log_all_metrics(mlflow_logger, whole_metrics, metrics_by_folds, metrics_each_fold)
 
         create_dataset_metadata(
@@ -89,3 +95,49 @@ def train(seed_list=None):
     )
 
     return metrics_seed_mean_dict
+
+
+def log_all_metrics(mlflow_logger, whole_metrics, metrics_by_folds, metrics_each_fold):
+    # log num metrics
+    num_metrics_dict = {
+        "whole_pfbeta": whole_metrics["best_pfbeta"],
+        "whole_best_threshold": whole_metrics["best_thresh_pfbeta"],
+        "whole_auc_roc": whole_metrics["auc_roc"],
+        "whole_auc_pr": whole_metrics["auc_pr"],
+        "whole_TP": whole_metrics["TP"],
+        "whole_FP": whole_metrics["FP"],
+        "whole_FN": whole_metrics["FN"],
+        "whole_TN": whole_metrics["TN"],
+        "by_fold_pfbeta": metrics_by_folds["pfbeta"],
+        "by_fold_auc_roc": metrics_by_folds["auc_roc"],
+        "by_fold_auc_pr": metrics_by_folds["auc_pr"],
+        "by_fold_TP": metrics_by_folds["TP"],
+        "by_fold_FP": metrics_by_folds["FP"],
+        "by_fold_FN": metrics_by_folds["FN"],
+        "by_fold_TN": metrics_by_folds["TN"],
+    }
+    for i, metrics_one_fold in enumerate(metrics_each_fold):
+        num_metrics_dict[f"fold{i}_pfbeta"] = metrics_one_fold["best_pfbeta"]
+        num_metrics_dict[f"fold{i}_best_threshold"] = metrics_one_fold["best_thresh_pfbeta"]
+        num_metrics_dict[f"fold{i}_auc_roc"] = metrics_one_fold["auc_roc"]
+        num_metrics_dict[f"fold{i}_auc_pr"] = metrics_one_fold["auc_pr"]
+        num_metrics_dict[f"fold{i}_TP"] = metrics_one_fold["TP"]
+        num_metrics_dict[f"fold{i}_FP"] = metrics_one_fold["FP"]
+        num_metrics_dict[f"fold{i}_FN"] = metrics_one_fold["FN"]
+        num_metrics_dict[f"fold{i}_TN"] = metrics_one_fold["TN"]
+
+    mlflow_logger.log_metrics(num_metrics_dict)
+
+    # log fig metrics
+    run_id = mlflow_logger.run_id
+    for key, value in whole_metrics.items():
+        if key.endswith("curve"):
+            mlflow_logger.experiment.log_figure(run_id, value, f"whole_{key}.png")
+    for i, metrics_one_fold in enumerate(metrics_each_fold):
+        for key, value in metrics_one_fold.items():
+            if key.endswith("curve"):
+                mlflow_logger.experiment.log_figure(run_id, value, f"each_fold_{i}_{key}.png")
+
+
+if __name__ == "__main__":
+    train(seed_list=[42])

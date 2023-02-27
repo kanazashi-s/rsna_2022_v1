@@ -10,6 +10,7 @@ from torch.cuda import amp
 import torch_tensorrt
 import timm
 from cfg.general import GeneralCFG
+from single.rapids_svc_baseline.config import RapidsSvcBaselineCFG
 from single.rapids_svc_baseline.feature_extract.dataset import get_extract_dataloader
 
 

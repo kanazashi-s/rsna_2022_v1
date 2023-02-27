@@ -44,6 +44,7 @@ def litmodule_to_trt(model_dir: Path, seed: int):
         state_dict = torch.load(model_dir / f"best_loss_fold{fold}.ckpt")["state_dict"]
         model_torch = MyModel()
         model_torch.load_state_dict(state_dict)
+        model_torch = model_torch.backbone
 
         model_torch.eval()
 
@@ -71,5 +72,5 @@ if __name__ == "__main__":
         model_dir = Path("/kaggle/input/mean-agg-ker-optim-swa-20220213")
         litmodule_to_trt(model_dir, seed=42)
     else:
-        model_dir = Path("/workspace", "output", "single", "mean_agg", "1536_ker_swa")
+        model_dir = Path("/workspace", "output", "single", "mean_agg", "1536_ker_swa_smooth")
         litmodule_to_trt(model_dir, seed=42)
