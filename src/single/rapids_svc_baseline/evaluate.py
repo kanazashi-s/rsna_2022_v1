@@ -92,3 +92,4 @@ def evaluate(seed):
 
 if __name__ == "__main__":
     whole_metrics, metrics_by_folds, metrics_each_fold = evaluate(seed=42)
+
